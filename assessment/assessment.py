@@ -107,6 +107,7 @@ urls = (
     "/banks/(.*)/assessmentstaken/(.*)/questions/?", "AssessmentTakenQuestions",
     "/banks/(.*)/assessmentstaken/(.*)/finish/?", "FinishAssessmentTaken",
     "/banks/(.*)/assessmentstaken/(.*[^/])/?", "AssessmentTakenDetails",
+    "/banks/(.*)/assessmentstaken", "AssessmentTakenList",
     "/banks/(.*)/assessments/(.*)/assessmentsoffered/?", "AssessmentsOffered",
     "/banks/(.*)/assessmentsoffered/?", "AssessmentsOffered",
     "/banks/(.*)/assessmentsoffered/(.*[^/])/?", "AssessmentOfferedDetails",
@@ -1848,6 +1849,27 @@ class AssessmentTakenDetails(utilities.BaseClass):
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
+
+class AssessmentTakenList(utilities.BaseClass):
+    """
+    Get a list of assessment takens
+
+    GET
+
+    Note that for RESTful calls, you need to set the request header
+    'content-type' to 'application/json'
+    """
+    @utilities.format_response
+    def GET(self, bank_id):
+        try:
+            am = autils.get_assessment_manager()
+            atls = am.get_assessment_taken_lookup_session(proxy=am._proxy)
+            atls.use_federated_bank_view()
+            takens = atls.get_assessments_taken()
+            data = utilities.convert_dl_object(takens)
+            return data
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
 
 class FinishAssessmentTaken(utilities.BaseClass):
     """
