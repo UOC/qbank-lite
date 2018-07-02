@@ -2,7 +2,7 @@ beautifulsoup4==4.4.1
 cffi==1.7.0
 cryptography==1.4
 diskcache==3.0.1
-dlkit==0.7.0
+#dlkit==0.7.0
 enum34==1.1.6
 html5lib==0.9999999
 idna==2.1
@@ -21,3 +21,4 @@ signit==0.3.0
 six==1.10.0
 sympy==1.0
 -e git://github.com/CLIxIndia-Dev/webpy.git@362dcecae9416eef6622922264e6c6482992c898#egg=web.py
+-e git://github.com/UOC/dlkit.git@feature/restfull#egg=dlkit
