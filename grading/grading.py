@@ -13,7 +13,7 @@ urls = (
 #    "/gradebooks/(.*)/entries/(.*)/?", "GradeEntryDetails",
 #    "/gradebooks/(.*)/colums/?", "GradebookColumnsList",
 #    "/gradebooks/(.*)/entries/?", "GradeEntriesList",
-#    "/gradebooks/(.*)/?", "GradebookDetails",
+    "/gradebooks/(.*)/?", "GradebookDetails",
     "/gradebooks/?", "GradebookList"
 )
 
@@ -77,6 +77,32 @@ class GradebookList(utilities.BaseClass):
                               utilities.clean_id(data['aliasId']))
 
             return new_gradebook
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
+
+class GradebookDetails(utilities.BaseClass):
+    """
+    Shows details for a specific gradebook.
+    api/v1/grading/gradebooks/<gradebook_id>/
+
+    GET, PUT, DELETE
+    PUT will update the gradebook. Only changed attributes need to be sent.
+    DELETE will remove the gradebook.
+
+    Note that for RESTful calls, you need to set the request header
+    'content-type' to 'application/json'
+
+    Example (note the use of double quotes!!):
+       PUT {"name" : "a new gradebook"}
+    """
+    @utilities.format_response
+    def GET(self, gradebook_id):
+        try:
+            gm = gutils.get_grading_manager()
+            grading_gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
+            gradebook = utilities.convert_dl_object(grading_gradebook)
+            return gradebook
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
