@@ -226,11 +226,82 @@ class GradebookGradeSystemDetails(utilities.BaseClass):
         try:
             gm = gutils.get_grading_manager()
             gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
-            grading_grade_systems = gradebook.get_grade_system(utilities.clean_id(gradesystem_id))
-            grade_system = utilities.convert_dl_object(grading_grade_systems)
+            grading_grade_system = gradebook.get_grade_system(utilities.clean_id(gradesystem_id))
+            grade_system = utilities.convert_dl_object(grading_grade_system)
             return grade_system
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
+    @utilities.format_response
+    def PUT(self, gradebook_id, gradesystem_id):
+        try:
+            gm = gutils.get_grading_manager()
+            data = self.data()
+            utilities.verify_at_least_one_key_present(data,
+                                                      ['name', 'description', 'basedOnGrades',
+                                                       'grades', 'highestScore', 'lowestScore',
+                                                       'scoreIncrement'])
+            gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
+            grade_system = gradebook.get_grade_system(utilities.clean_id(gradesystem_id))
+
+            if 'basedOnGrades' in data:
+                # do this first, so methods below work
+                form = gradebook.get_grade_system_form_for_update(grade_system.ident)
+                form.set_based_on_grades(bool(data['basedOnGrades']))
+
+                if data['basedOnGrades']:
+                    # clear out the numeric score fields
+                    form.clear_highest_numeric_score()
+                    form.clear_lowest_numeric_score()
+                    form.clear_numeric_score_increment()
+                else:
+                    # clear out grades
+                    for grade in grade_system.get_grades():
+                        gradebook.delete_grade(grade.ident)
+
+                grade_system = gradebook.update_grade_system(form)
+
+            if (grade_system.is_based_on_grades() and
+                    'grades' in data):
+                # user wants to update the grades
+                # here, wipe out all previous grades and over-write
+                gutils.check_grade_inputs(data)
+                if len(data['grades']) > 0:
+                    for grade in grade_system.get_grades():
+                        gradebook.delete_grade(grade.ident)
+                    gutils.add_grades_to_grade_system(gradebook,
+                                                      grade_system,
+                                                      data)
+
+            score_inputs = ['highestScore', 'lowestScore', 'scoreIncrement']
+            if (not grade_system.is_based_on_grades() and
+                    any(i in data for i in score_inputs)):
+                form = gradebook.get_grade_system_form_for_update(grade_system.ident)
+
+                if 'highestScore' in data:
+                    form.set_highest_numeric_score(float(data['highestScore']))
+
+                if 'lowestScore' in data:
+                    form.set_lowest_numeric_score(float(data['lowestScore']))
+
+                if 'scoreIncrement' in data:
+                    form.set_numeric_score_increment(float(data['scoreIncrement']))
+
+                gradebook.update_grade_system(form)
+
+            if 'name' in data or 'description' in data:
+                form = gradebook.get_grade_system_form_for_update(grade_system.ident)
+
+                if 'name' in data:
+                    form.display_name = data['name']
+                if 'description' in data:
+                    form.description = data['description']
+
+                gradebook.update_grade_system(form)
+
+            grade_system = utilities.convert_dl_object(gradebook.get_grade_system(grade_system.ident))
+            return grade_system
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
 
 app_grading = web.application(urls, locals())
