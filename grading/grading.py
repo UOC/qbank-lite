@@ -5,10 +5,10 @@ import utilities
 import grading_utilities as gutils
 
 urls = (
-#    "/gradebooks/(.*)/columns/(.*)/entries/?", "GradeEntriesList",
+    "/gradebooks/(.*)/columns/(.*)/entries/?", "GradeEntriesList",
 #    "/gradebooks/(.*)/columns/(.*)/summary/?", "GradebookColumnSummary",
 #    "/gradebooks/(.*)/entries/(.*)/?", "GradeEntryDetails",
-#    "/gradebooks/(.*)/entries/?", "GradeEntriesList",
+    "/gradebooks/(.*)/entries/?", "GradeEntriesList",
     "/gradebooks/(.*)/columns/(.*)/?", "GradebookColumnDetails",
     "/gradebooks/(.*)/columns/?", "GradebookColumnsList",
     "/gradebooks/(.*)/gradesystems/(.*)/?", "GradebookGradeSystemDetails",
@@ -419,6 +419,40 @@ class GradebookColumnDetails(utilities.BaseClass):
             gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
             data = gradebook.delete_gradebook_column(utilities.clean_id(column_id))
             return utilities.success()
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
+
+class GradeEntriesList(utilities.BaseClass):
+    """
+    Get or add grade entry to a gradebook column
+    api/v1/grading/gradebooks/<gradebook_id>/columns/<column_id>/entries
+
+    OR view all entries in a gradebook
+    api/v1/grading/gradebooks/<gradebook_id>/entries
+
+    GET, POST
+    GET to view current grade entries (in whole gradebook or single gradebook column).
+    POST to create a new grade entry (only to a specific gradebook)
+
+    Note that for RESTful calls, you need to set the request header
+    'content-type' to 'application/json'
+
+    Example (note the use of double quotes!!):
+       {"grade" : "grading.Grade%3A123%40MIT-ODL"}
+    """
+    @utilities.format_response
+    def GET(self, gradebook_id, column_id=None):
+        try:
+            gm = gutils.get_grading_manager()
+            gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
+            if column_id is None:
+                grading_entries = gradebook.get_grade_entries()
+            else:
+                grading_entries = gradebook.get_grade_entries_for_gradebook_column(utilities.clean_id(column_id))
+
+            entries = utilities.extract_items(grading_entries)
+            return entries
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
