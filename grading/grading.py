@@ -5,12 +5,12 @@ import utilities
 import grading_utilities as gutils
 
 urls = (
-#    "/gradebooks/(.*)/columns/(.*)/summary/?", "GradebookColumnSummary",
+    "/gradebooks/(.*)/columns/(.*)/summary/?", "GradebookColumnSummary",
+    "/gradebooks/(.*)/columns/(.*)/entries/?", "GradeEntriesList",
+    "/gradebooks/(.*)/columns/(.*[^/])/?", "GradebookColumnDetails",
+    "/gradebooks/(.*)/columns/?", "GradebookColumnsList",
     "/gradebooks/(.*)/entries/(.*)/?", "GradeEntryDetails",
     "/gradebooks/(.*)/entries/?", "GradeEntriesList",
-    "/gradebooks/(.*)/columns/(.*)/entries/?", "GradeEntriesList",
-    "/gradebooks/(.*)/columns/(.*)/?", "GradebookColumnDetails",
-    "/gradebooks/(.*)/columns/?", "GradebookColumnsList",
     "/gradebooks/(.*)/gradesystems/(.*)/?", "GradebookGradeSystemDetails",
     "/gradebooks/(.*)/gradesystems/?", "GradebookGradeSystemList",
     "/gradebooks/(.*)/?", "GradebookDetails",
@@ -563,5 +563,44 @@ class GradeEntryDetails(utilities.BaseClass):
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
+
+class GradebookColumnSummary(utilities.BaseClass):
+    """
+    Get grade system details
+    api/v1/grading/gradebooks/<gradebook_id>/columns/<column_id>/summary/
+
+    GET
+
+    Note that for RESTful calls, you need to set the request header
+    'content-type' to 'application/json'
+    """
+    @utilities.format_response
+    def GET(self, gradebook_id, column_id):
+        try:
+            gm = gutils.get_grading_manager()
+            gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
+            if gradebook.get_grade_entries_for_gradebook_column(utilities.clean_id(column_id)).available() > 0:
+                gradebook_column_summary = gradebook.get_gradebook_column_summary(utilities.clean_id(column_id))
+                gradebook_column_summary_map = {
+                    'mean': gradebook_column_summary.get_mean(),
+                    'median': gradebook_column_summary.get_median(),
+                    'mode': gradebook_column_summary.get_mode(),
+                    'rootMeanSquared': gradebook_column_summary.get_rms(),
+                    'standardDeviation': gradebook_column_summary.get_standard_deviation(),
+                    'sum': gradebook_column_summary.get_sum()
+                }
+            else:
+                gradebook_column_summary_map = {
+                    'mean': 0.0,
+                    'median': 0.0,
+                    'mode': 0.0,
+                    'rootMeanSquared': 0.0,
+                    'standardDeviation': 0.0,
+                    'sum': 0.0
+                }
+
+            return gradebook_column_summary_map
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
 
 app_grading = web.application(urls, locals())
