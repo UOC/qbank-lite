@@ -5,10 +5,10 @@ import utilities
 import grading_utilities as gutils
 
 urls = (
-    "/gradebooks/(.*)/columns/(.*)/entries/?", "GradeEntriesList",
 #    "/gradebooks/(.*)/columns/(.*)/summary/?", "GradebookColumnSummary",
-#    "/gradebooks/(.*)/entries/(.*)/?", "GradeEntryDetails",
+    "/gradebooks/(.*)/entries/(.*)/?", "GradeEntryDetails",
     "/gradebooks/(.*)/entries/?", "GradeEntriesList",
+    "/gradebooks/(.*)/columns/(.*)/entries/?", "GradeEntriesList",
     "/gradebooks/(.*)/columns/(.*)/?", "GradebookColumnDetails",
     "/gradebooks/(.*)/columns/?", "GradebookColumnsList",
     "/gradebooks/(.*)/gradesystems/(.*)/?", "GradebookGradeSystemDetails",
@@ -492,5 +492,33 @@ class GradeEntriesList(utilities.BaseClass):
             return entry
         except Exception as ex:
             utilities.handle_exceptions(ex)
+
+class GradeEntryDetails(utilities.BaseClass):
+    """
+    Get grade entry details
+    api/v1/grading/gradebooks/<gradebook_id>/entries/<entry_id>/
+
+    GET, PUT, DELETE
+    PUT to modify an existing grade entry (name, score / grade, etc.).
+        Include only the changed parameters.
+    DELETE to remove the grade entry.
+
+    Note that for RESTful calls, you need to set the request header
+    'content-type' to 'application/json'
+
+    Example (note the use of double quotes!!):
+       {"score" : 98.2}
+    """
+    @utilities.format_response
+    def GET(self, gradebook_id, entry_id):
+        try:
+            gm = gutils.get_grading_manager()
+            gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
+            grading_entry = gradebook.get_grade_entry(utilities.clean_id(entry_id))
+            entry = utilities.convert_dl_object(grading_entry)
+            return entry
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
 
 app_grading = web.application(urls, locals())
