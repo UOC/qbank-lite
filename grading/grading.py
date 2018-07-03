@@ -389,4 +389,27 @@ class GradebookColumnDetails(utilities.BaseClass):
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
+    @utilities.format_response
+    def PUT(self, gradebook_id, column_id):
+        try:
+            gm = gutils.get_grading_manager()
+            data = self.data()
+            utilities.verify_at_least_one_key_present(data,
+                                                   ['name', 'description', 'gradeSystemId'])
+
+            gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
+            gradebook_column = gradebook.get_gradebook_column(utilities.clean_id(column_id))
+
+            form = gradebook.get_gradebook_column_form_for_update(gradebook_column.ident)
+            form = utilities.set_form_basics(form, data)
+            if 'gradeSystemId' in data:
+                form.set_grade_system(utilities.clean_id(data['gradeSystemId']))
+
+            gradebook.update_gradebook_column(form)
+
+            gradebook_column = utilities.convert_dl_object(gradebook.get_gradebook_column(gradebook_column.ident))
+            return gradebook_column
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
 app_grading = web.application(urls, locals())
