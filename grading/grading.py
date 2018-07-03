@@ -342,5 +342,24 @@ class GradebookColumnsList(utilities.BaseClass):
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
+    @utilities.format_response
+    def POST(self, gradebook_id):
+        try:
+            gm = gutils.get_grading_manager()
+            gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
+
+            data = self.data()
+            utilities.verify_keys_present(data, ['gradeSystemId'])
+
+            form = gradebook.get_gradebook_column_form_for_create([])
+            form = utilities.set_form_basics(form, data)
+            form.set_grade_system(utilities.clean_id(data['gradeSystemId']))
+
+            column = utilities.convert_dl_object(gradebook.create_gradebook_column(form))
+
+            return column
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
 
 app_grading = web.application(urls, locals())
