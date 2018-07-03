@@ -437,6 +437,14 @@ SERVICE = {
                 {'value': 'JSON_1', 'priority': 1}
             ]
         },
+        'gradingProviderImpl': {
+            'syntax': 'STRING',
+            'displayName': 'Grading Provider Implementation',
+            'description': 'Implementation for grading service provider',
+            'values': [
+                {'value': 'JSON_1', 'priority': 1}
+            ]
+        }
     }
 }
 
