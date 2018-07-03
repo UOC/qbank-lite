@@ -106,5 +106,24 @@ class GradebookDetails(utilities.BaseClass):
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
+    @utilities.format_response
+    def PUT(self, gradebook_id):
+        try:
+            gm = gutils.get_grading_manager()
+            data = self.data()
+
+            form = gm.get_gradebook_form_for_update(utilities.clean_id(gradebook_id))
+
+            form = utilities.set_form_basics(form, data)
+            updated_gradebook = gm.update_gradebook(form)
+
+            if 'aliasId' in data:
+                gm.alias_bank(updated_gradebook.ident, utilities.clean_id(data['aliasId']))
+
+            gradebook = utilities.convert_dl_object(updated_gradebook)
+            return gradebook
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
 
 app_grading = web.application(urls, locals())
