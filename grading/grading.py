@@ -5,12 +5,12 @@ import utilities
 import grading_utilities as gutils
 
 urls = (
-#    "/gradebooks/(.*)/colums/(.*)/entries/?", "GradeEntriesList",
-#    "/gradebooks/(.*)/colums/(.*)/summary/?", "GradebookColumnSummary",
-#    "/gradebooks/(.*)/colums/(.*)/?", "GradebookColumnDetails",
+#    "/gradebooks/(.*)/columns/(.*)/entries/?", "GradeEntriesList",
+#    "/gradebooks/(.*)/columns/(.*)/summary/?", "GradebookColumnSummary",
+#    "/gradebooks/(.*)/columns/(.*)/?", "GradebookColumnDetails",
 #    "/gradebooks/(.*)/entries/(.*)/?", "GradeEntryDetails",
-#    "/gradebooks/(.*)/colums/?", "GradebookColumnsList",
 #    "/gradebooks/(.*)/entries/?", "GradeEntriesList",
+    "/gradebooks/(.*)/columns/?", "GradebookColumnsList",
     "/gradebooks/(.*)/gradesystems/(.*)/?", "GradebookGradeSystemDetails",
     "/gradebooks/(.*)/gradesystems/?", "GradebookGradeSystemList",
     "/gradebooks/(.*)/?", "GradebookDetails",
@@ -313,5 +313,34 @@ class GradebookGradeSystemDetails(utilities.BaseClass):
             return utilities.success()
         except Exception as ex:
             utilities.handle_exceptions(ex)
+
+
+class GradebookColumnsList(utilities.BaseClass):
+    """
+    Get or add column to a gradebook
+    api/v1/grading/gradebooks/<gradebook_id>/columns/
+
+    GET, POST
+    GET to view current columns.
+    POST to create a new column
+
+    Note that for RESTful calls, you need to set the request header
+    'content-type' to 'application/json'
+
+    Example (note the use of double quotes!!):
+       {"gradeSystemId" : "grading.GradeSystem%3A123%40MIT-ODL"}
+    """
+    @utilities.format_response
+    def GET(self, gradebook_id):
+        try:
+            gm = gutils.get_grading_manager()
+            gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
+            grading_columns = gradebook.get_gradebook_columns()
+
+            columns = utilities.extract_items(grading_columns)
+            return columns
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
 
 app_grading = web.application(urls, locals())
