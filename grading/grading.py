@@ -412,4 +412,14 @@ class GradebookColumnDetails(utilities.BaseClass):
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
+    @utilities.format_response
+    def DELETE(self, gradebook_id, column_id):
+        try:
+            gm = gutils.get_grading_manager()
+            gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
+            data = gradebook.delete_gradebook_column(utilities.clean_id(column_id))
+            return utilities.success()
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
 app_grading = web.application(urls, locals())
