@@ -7,9 +7,9 @@ import grading_utilities as gutils
 urls = (
 #    "/gradebooks/(.*)/columns/(.*)/entries/?", "GradeEntriesList",
 #    "/gradebooks/(.*)/columns/(.*)/summary/?", "GradebookColumnSummary",
-#    "/gradebooks/(.*)/columns/(.*)/?", "GradebookColumnDetails",
 #    "/gradebooks/(.*)/entries/(.*)/?", "GradeEntryDetails",
 #    "/gradebooks/(.*)/entries/?", "GradeEntriesList",
+    "/gradebooks/(.*)/columns/(.*)/?", "GradebookColumnDetails",
     "/gradebooks/(.*)/columns/?", "GradebookColumnsList",
     "/gradebooks/(.*)/gradesystems/(.*)/?", "GradebookGradeSystemDetails",
     "/gradebooks/(.*)/gradesystems/?", "GradebookGradeSystemList",
@@ -361,5 +361,32 @@ class GradebookColumnsList(utilities.BaseClass):
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
+
+class GradebookColumnDetails(utilities.BaseClass):
+    """
+    Get grade column details
+    api/v1/grading/gradebooks/<gradebook_id>/columns/<column_id>/
+
+    GET, PUT, DELETE
+    PUT to modify an existing gradebook column (name or gradeSystemId).
+        Include only the changed parameters.
+    DELETE to remove the gradebook column.
+
+    Note that for RESTful calls, you need to set the request header
+    'content-type' to 'application/json'
+
+    Example (note the use of double quotes!!):
+       {"name" : "an updated item"}
+    """
+    @utilities.format_response
+    def GET(self, gradebook_id, column_id):
+        try:
+            gm = gutils.get_grading_manager()
+            gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
+            grading_gradebook_column = gradebook.get_gradebook_column(utilities.clean_id(column_id))
+            gradebook_column = utilities.convert_dl_object(grading_gradebook_column)
+            return gradebook_column
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
 
 app_grading = web.application(urls, locals())
