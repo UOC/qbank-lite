@@ -520,5 +520,38 @@ class GradeEntryDetails(utilities.BaseClass):
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
+    @utilities.format_response
+    def PUT(self, gradebook_id, entry_id):
+        try:
+            gm = gutils.get_grading_manager()
+            data = self.data()
+            utilities.verify_at_least_one_key_present(data,
+                                                   ['name', 'description', 'grade',
+                                                    'score', 'ignoredForCalculations'])
+
+            gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
+            entry = gradebook.get_grade_entry(utilities.clean_id(entry_id))
+            grade_system = entry.get_gradebook_column().get_grade_system()
+
+            gutils.validate_score_and_grades_against_system(grade_system, data)
+
+            form = gradebook.get_grade_entry_form_for_update(entry.ident)
+            form = utilities.set_form_basics(form, data)
+            if 'grade' in data:
+                form.set_grade(utilities.clean_id(data['grade']))
+
+            if 'score' in data:
+                form.set_score(float(data['score']))
+
+            if 'ignoredForCalculations' in data:
+                form.set_ignored_for_calculations(bool(data['ignoredForCalculations']))
+
+            gradebook.update_grade_entry(form)
+
+            entry = utilities.convert_dl_object(gradebook.get_grade_entry(entry.ident))
+            return entry
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
 
 app_grading = web.application(urls, locals())
