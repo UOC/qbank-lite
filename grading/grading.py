@@ -6,13 +6,13 @@ import grading_utilities as gutils
 
 urls = (
 #    "/gradebooks/(.*)/gradesystems/(.*)/?", "GradebookGradeSystemDetails",
-#    "/gradebooks/(.*)/gradesystems/?", "GradebookGradeSystemList",
 #    "/gradebooks/(.*)/colums/(.*)/entries/?", "GradeEntriesList",
 #    "/gradebooks/(.*)/colums/(.*)/summary/?", "GradebookColumnSummary",
 #    "/gradebooks/(.*)/colums/(.*)/?", "GradebookColumnDetails",
 #    "/gradebooks/(.*)/entries/(.*)/?", "GradeEntryDetails",
 #    "/gradebooks/(.*)/colums/?", "GradebookColumnsList",
 #    "/gradebooks/(.*)/entries/?", "GradeEntriesList",
+    "/gradebooks/(.*)/gradesystems/?", "GradebookGradeSystemList",
     "/gradebooks/(.*)/?", "GradebookDetails",
     "/gradebooks/?", "GradebookList"
 )
@@ -131,6 +131,34 @@ class GradebookDetails(utilities.BaseClass):
             gm = gutils.get_grading_manager()
             data = gm.delete_gradebook(utilities.clean_id(gradebook_id))
             return utilities.success()
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
+
+class GradebookGradeSystemList(utilities.BaseClass):
+    """
+    Get or add gradesystems to a gradebook
+    api/v1/grading/gradebooks/<gradebook_id>/gradesystems/
+
+    GET, POST
+    GET to view current gradesystems.
+    POST to create a new gradesystem
+
+    Note that for RESTful calls, you need to set the request header
+    'content-type' to 'application/json'
+
+    Example (note the use of double quotes!!):
+       {"name" : "Letters", "description": "Letter grades A - F"}
+    """
+    @utilities.format_response
+    def GET(self, gradebook_id):
+        try:
+            gm = gutils.get_grading_manager()
+            gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
+
+            grading_grade_systems = gradebook.get_grade_systems()
+            grade_systems = utilities.extract_items(grading_grade_systems)
+            return grade_systems
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
