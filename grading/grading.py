@@ -162,5 +162,47 @@ class GradebookGradeSystemList(utilities.BaseClass):
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
+    @utilities.format_response
+    def POST(self, gradebook_id):
+        try:
+            gm = gutils.get_grading_manager()
+            gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
+
+            form = gradebook.get_grade_system_form_for_create([])
+            data = self.data()
+
+            form = utilities.set_form_basics(form, data)
+
+            check_scores = True
+
+            if 'basedOnGrades' in data:
+                form.set_based_on_grades(bool(data['basedOnGrades']))
+                if data['basedOnGrades']:
+                    check_scores = False
+
+            if check_scores:
+                gutils.check_numeric_score_inputs(data)
+
+                form.set_highest_numeric_score(float(data['highestScore']))
+                form.set_lowest_numeric_score(float(data['lowestScore']))
+                form.set_numeric_score_increment(float(data['scoreIncrement']))
+
+            grade_system = gradebook.create_grade_system(form)
+
+            if not check_scores:
+                gutils.check_grade_inputs(data)
+                gutils.add_grades_to_grade_system(gradebook,
+                                                   grade_system,
+                                                   data)
+
+            new_grade_system = utilities.convert_dl_object(gradebook.get_grade_system(grade_system.ident))
+
+            return new_grade_system
+        except Exception as ex:
+            try:
+                gradebook.delete_grade_system(grade_system.ident)
+            except NameError:
+                pass
+            utilities.handle_exceptions(ex)
 
 app_grading = web.application(urls, locals())
