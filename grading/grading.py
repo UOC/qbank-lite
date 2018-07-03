@@ -456,4 +456,41 @@ class GradeEntriesList(utilities.BaseClass):
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
+    @utilities.format_response
+    def POST(self, gradebook_id, column_id=None):
+        try:
+            gm = gutils.get_grading_manager()
+
+            data = self.data()
+            utilities.verify_at_least_one_key_present(data,
+                                                   ['grade', 'score', 'ignoredForCalculations'])
+            utilities.verify_keys_present(data, ['resourceId'])
+            if column_id is None:
+                utilities.verify_keys_present(data, ['columnId'])
+                column_id = data['columnId']
+
+            gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
+            column = gradebook.get_gradebook_column(utilities.clean_id(column_id))
+
+            gutils.validate_score_and_grades_against_system(column.get_grade_system(),
+                                                             data)
+            form = gradebook.get_grade_entry_form_for_create(column.ident,
+                                                             utilities.clean_id(data['resourceId']),
+                                                             [])
+            form = utilities.set_form_basics(form, data)
+            if 'ignoredForCalculations' in data:
+                form.set_ignored_for_calculations(bool(data['ignoredForCalculations']))
+
+            if 'grade' in data:
+                form.set_grade(utilities.clean_id(data['grade']))
+
+            if 'score' in data:
+                form.set_score(float(data['score']))
+
+            entry = utilities.convert_dl_object(gradebook.create_grade_entry(form))
+
+            return entry
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
 app_grading = web.application(urls, locals())
