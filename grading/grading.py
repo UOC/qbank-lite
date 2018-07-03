@@ -5,13 +5,13 @@ import utilities
 import grading_utilities as gutils
 
 urls = (
-#    "/gradebooks/(.*)/gradesystems/(.*)/?", "GradebookGradeSystemDetails",
 #    "/gradebooks/(.*)/colums/(.*)/entries/?", "GradeEntriesList",
 #    "/gradebooks/(.*)/colums/(.*)/summary/?", "GradebookColumnSummary",
 #    "/gradebooks/(.*)/colums/(.*)/?", "GradebookColumnDetails",
 #    "/gradebooks/(.*)/entries/(.*)/?", "GradeEntryDetails",
 #    "/gradebooks/(.*)/colums/?", "GradebookColumnsList",
 #    "/gradebooks/(.*)/entries/?", "GradeEntriesList",
+    "/gradebooks/(.*)/gradesystems/(.*)/?", "GradebookGradeSystemDetails",
     "/gradebooks/(.*)/gradesystems/?", "GradebookGradeSystemList",
     "/gradebooks/(.*)/?", "GradebookDetails",
     "/gradebooks/?", "GradebookList"
@@ -204,5 +204,33 @@ class GradebookGradeSystemList(utilities.BaseClass):
             except NameError:
                 pass
             utilities.handle_exceptions(ex)
+
+
+class GradebookGradeSystemDetails(utilities.BaseClass):
+    """
+    Get grade system details
+    api/v1/grading/gradebooks/<gradebook_id>/gradesystems/<gradesystem_id>/
+
+    GET, PUT, DELETE
+    PUT to modify an existing grade system (name or settings). Include only the changed parameters.
+    DELETE to remove the grade system.
+
+    Note that for RESTful calls, you need to set the request header
+    'content-type' to 'application/json'
+
+    Example (note the use of double quotes!!):
+       {"name" : "an updated item"}
+    """
+    @utilities.format_response
+    def GET(self, gradebook_id, gradesystem_id):
+        try:
+            gm = gutils.get_grading_manager()
+            gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
+            grading_grade_systems = gradebook.get_grade_system(utilities.clean_id(gradesystem_id))
+            grade_system = utilities.convert_dl_object(grading_grade_systems)
+            return grade_system
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
 
 app_grading = web.application(urls, locals())
