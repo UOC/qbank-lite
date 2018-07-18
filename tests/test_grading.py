@@ -479,3 +479,40 @@ class GradeSystemCrUDTests(BaseGradingTestCase):
 
         self.num_gradesystems(0)
 
+    def test_can_get_gradesystem_details(self):
+        grade_system = self.setup_gradesystem("testing")
+
+        self.num_gradesystems(1)
+
+        url = self.url + '/' + str(grade_system.ident)
+
+        req = self.app.get(url)
+        self.ok(req)
+        gradesystem_details = self.json(req)
+
+        for attr, val in grade_system.object_map.iteritems():
+            self.assertEqual(
+                val,
+                gradesystem_details[attr]
+            )
+
+    def test_invalid_gradesystem_id_throws_exception(self):
+        self.setup_gradesystem("testing")
+        self.num_gradesystems(1)
+
+        url = self.url + '/x'
+        self.assertRaises(AppError, self.app.get, url)
+
+    def test_bad_gradesystem_id_throws_exception(self):
+        self.setup_gradesystem("testing")
+        self.num_gradesystems(1)
+
+        url = self.url + '/' + self.bad_gradesystem_id
+        self.assertRaises(AppError, self.app.get, url)
+
+    def test_bad_gradebook_id_throws_exception(self):
+        grade_system = self.setup_gradesystem("testing")
+        self.num_gradesystems(1)
+
+        url = self.bad_gradebook_url + '/' + str(grade_system.ident)
+        self.assertRaises(AppError, self.app.get, url)
