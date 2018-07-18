@@ -15,13 +15,10 @@ class BaseGradingTestCase(BaseTestCase):
     def tearDown(self):
         super(BaseGradingTestCase, self).tearDown()
 
-    def setup_gradesystem(self, gradebook, text):
-        gm = get_managers()['gm']
-
-        gradebook = gm.get_gradebook(gradebook.ident)
-
+    def create_new_gradesystem(self, gradebook, text, based_on_grades=False):
         form = gradebook.get_grade_system_form_for_create([])
         form.set_display_name(text)
+        form.set_based_on_grades(based_on_grades)
 
         new_grade_system = gradebook.create_grade_system(form)
 
@@ -39,6 +36,31 @@ class BaseGradingTestCase(BaseTestCase):
         new_column = gradebook.create_gradebook_column(form)
 
         return new_column
+
+    def create_new_entry(self, gradebook, gradebook_column, resource_id, ignored=False, grade=None):
+        column = gradebook.get_gradebook_column(gradebook_column.ident)
+        form = gradebook.get_grade_entry_form_for_create(column.ident,
+                                                         resource_id,
+                                                         [])
+
+        form.set_display_name("for testing only")
+        form.ignored_for_calculations = ignored
+        if grade is not None:
+            form.grade = grade.ident
+
+        new_entry = gradebook.create_grade_entry(form)
+
+        return new_entry
+
+    def create_new_grade(self, gradebook, graded_based_grade_system):
+        # add grades
+        form = gradebook.get_grade_form_for_create(graded_based_grade_system.ident, [])
+        form.inputScoreStartRange = 0.0
+        form.inputScoreEndRange = 100.0
+        form.outputScore = 50.0
+
+        grade = gradebook.create_grade(form)
+        return grade
 
     def display_text(self, text):
         return {
@@ -319,8 +341,8 @@ class GradeSystemCRUDTests(BaseGradingTestCase):
             val
         )
 
-    def setup_gradesystem(self, text):
-        return super(GradeSystemCRUDTests, self).setup_gradesystem(self.gradebook, text)
+    def create_new_gradesystem(self, text):
+        return super(GradeSystemCRUDTests, self).create_new_gradesystem(self.gradebook, text)
 
     def setUp(self):
         super(GradeSystemCRUDTests, self).setUp()
@@ -341,7 +363,7 @@ class GradeSystemCRUDTests(BaseGradingTestCase):
         gradesystem_list = self.json(req)
         self.assertEqual(len(gradesystem_list), 0)
 
-        gradesystem = self.setup_gradesystem('foo')
+        gradesystem = self.create_new_gradesystem('foo')
         self.num_gradesystems(1)
 
         req = self.app.get(self.url)
@@ -494,7 +516,7 @@ class GradeSystemCRUDTests(BaseGradingTestCase):
         self.num_gradesystems(0)
 
     def test_can_get_gradesystem_details(self):
-        grade_system = self.setup_gradesystem("testing")
+        grade_system = self.create_new_gradesystem("testing")
 
         self.num_gradesystems(1)
 
@@ -511,28 +533,28 @@ class GradeSystemCRUDTests(BaseGradingTestCase):
             )
 
     def test_invalid_gradesystem_id_throws_exception(self):
-        self.setup_gradesystem("testing")
+        self.create_new_gradesystem("testing")
         self.num_gradesystems(1)
 
         url = self.url + '/x'
         self.assertRaises(AppError, self.app.get, url)
 
     def test_bad_gradesystem_id_throws_exception(self):
-        self.setup_gradesystem("testing")
+        self.create_new_gradesystem("testing")
         self.num_gradesystems(1)
 
         url = self.url + '/' + self.bad_gradesystem_id
         self.assertRaises(AppError, self.app.get, url)
 
     def test_bad_gradebook_id_throws_exception(self):
-        grade_system = self.setup_gradesystem("testing")
+        grade_system = self.create_new_gradesystem("testing")
         self.num_gradesystems(1)
 
         url = self.bad_gradebook_url + '/' + str(grade_system.ident)
         self.assertRaises(AppError, self.app.get, url)
 
     def test_can_update_gradesystem(self):
-        grade_system = self.setup_gradesystem("test")
+        grade_system = self.create_new_gradesystem("test")
 
         self.num_gradesystems(1)
 
@@ -564,7 +586,7 @@ class GradeSystemCRUDTests(BaseGradingTestCase):
         self.num_gradesystems(1)
 
     def test_can_update_gradesystem_with_dics(self):
-        grade_system = self.setup_gradesystem("test")
+        grade_system = self.create_new_gradesystem("test")
 
         self.num_gradesystems(1)
 
@@ -596,7 +618,7 @@ class GradeSystemCRUDTests(BaseGradingTestCase):
         self.num_gradesystems(1)
 
     def test_update_with_invalid_id_throws_exception(self):
-        self.setup_gradesystem("Test")
+        self.create_new_gradesystem("Test")
 
         self.num_gradesystems(1)
 
@@ -617,7 +639,7 @@ class GradeSystemCRUDTests(BaseGradingTestCase):
         self.num_gradesystems(1)
 
     def test_update_with_no_params_throws_exception(self):
-        grade_system = self.setup_gradesystem("Test")
+        grade_system = self.create_new_gradesystem("Test")
 
         self.num_gradesystems(1)
 
@@ -648,7 +670,7 @@ class GradeSystemCRUDTests(BaseGradingTestCase):
             )
 
     def test_can_delete_gradesystem(self):
-        grade_system = self.setup_gradesystem("Test")
+        grade_system = self.create_new_gradesystem("Test")
 
         self.num_gradesystems(1)
 
@@ -661,7 +683,7 @@ class GradeSystemCRUDTests(BaseGradingTestCase):
         self.num_gradesystems(0)
 
     def test_trying_to_delete_gradesystem_with_invalid_id_throws_exception(self):
-        self.setup_gradesystem("Test")
+        self.create_new_gradesystem("Test")
 
         self.num_gradesystems(1)
 
@@ -671,7 +693,7 @@ class GradeSystemCRUDTests(BaseGradingTestCase):
         self.num_gradesystems(1)
 
     def test_trying_to_delete_gradesystem_with_invalid_gradebook_id_throws_exception(self):
-        grade_system = self.setup_gradesystem("Test")
+        grade_system = self.create_new_gradesystem("Test")
 
         self.num_gradesystems(1)
 
@@ -681,7 +703,7 @@ class GradeSystemCRUDTests(BaseGradingTestCase):
         self.num_gradesystems(1)
 
     def test_trying_to_delete_gradebook_with_gradesystems_id_throws_exception(self):
-        self.setup_gradesystem("Test")
+        self.create_new_gradesystem("Test")
 
         self.num_gradesystems(1)
 
@@ -706,7 +728,7 @@ class GradebookColumnCRUDTests(BaseGradingTestCase):
     def setUp(self):
         super(GradebookColumnCRUDTests, self).setUp()
         self.gradebook = create_new_gradebook()
-        self.grade_system = self.setup_gradesystem(self.gradebook, "for testing only")
+        self.grade_system = self.create_new_gradesystem(self.gradebook, "for testing only")
         self.bad_gradebook_id = 'grading.Gradebook%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
         self.bad_grade_system_id = 'grading.GradebookSystem%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
         self.bad_gradebook_column_id = 'grading.GradebookColumn%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
@@ -1029,67 +1051,30 @@ class GradebookEntryCRUDTest(BaseGradingTestCase):
         )
 
     def create_new_entry(self):
-        gm = get_managers()['gm']
-
-        gradebook = gm.get_gradebook(self.gradebook.ident)
-        column = gradebook.get_gradebook_column(self.gradebook_column.ident)
-        form = gradebook.get_grade_entry_form_for_create(column.ident,
-                                                         self.resource_id,
-                                                         [])
-
-        form.set_display_name("for testing only")
-        form.ignored_for_calculations = True
-
-        new_entry = gradebook.create_grade_entry(form)
-
-        return new_entry
+        return super(GradebookEntryCRUDTest, self).create_new_entry(self.gradebook,
+                                                                    self.gradebook_column,
+                                                                    self.resource_id,
+                                                                    True)
 
     def create_new_graded_entry(self):
-        gm = get_managers()['gm']
-
-        gradebook = gm.get_gradebook(self.gradebook.ident)
-        column = gradebook.get_gradebook_column(self.graded_based_gradebook_column.ident)
-        form = gradebook.get_grade_entry_form_for_create(column.ident,
-                                                         self.resource_id,
-                                                         [])
-
-        form.set_display_name("for testing only")
-        form.ignored_for_calculations = True
-        form.grade = self.grade.ident
-
-        new_entry = gradebook.create_grade_entry(form)
-
-        return new_entry
+        return super(GradebookEntryCRUDTest, self).create_new_entry(self.gradebook,
+                                                                    self.graded_based_gradebook_column,
+                                                                    self.resource_id,
+                                                                    True,
+                                                                    self.grade)
 
     def create_new_grade(self):
-        gm = get_managers()['gm']
-
-        # add grades
-        form = self.gradebook.get_grade_form_for_create(self.graded_based_grade_system.ident, [])
-        form.inputScoreStartRange = 0.0
-        form.inputScoreEndRange = 100.0
-        form.outputScore = 50.0
-
-        grade = self.gradebook.create_grade(form)
-        return grade
+        return super(GradebookEntryCRUDTest, self).create_new_grade(self.gradebook, self.graded_based_grade_system)
 
     def create_new_graded_based_gradesystem(self):
-        gm = get_managers()['gm']
-
-        gradebook = gm.get_gradebook(self.gradebook.ident)
-
-        form = gradebook.get_grade_system_form_for_create([])
-        form.set_display_name("For testing")
-        form.based_on_grades = True
-
-        new_grade_system = gradebook.create_grade_system(form)
-
-        return new_grade_system
+        return super(GradebookEntryCRUDTest, self).create_new_gradesystem(self.gradebook,
+                                                                          "For testing",
+                                                                          True)
 
     def setUp(self):
         super(GradebookEntryCRUDTest, self).setUp()
         self.gradebook = create_new_gradebook()
-        self.grade_system = self.setup_gradesystem(self.gradebook, "Test")
+        self.grade_system = self.create_new_gradesystem(self.gradebook, "Test")
         self.gradebook_column = self.create_new_gradebook_column(self.gradebook, self.grade_system)
         self.resource_id = Id('user:xaracil@UOC.EDU')
 
@@ -1214,7 +1199,7 @@ class GradebookEntryCRUDTest(BaseGradingTestCase):
         self.ok(req)
         entry = self.json(req)
         self.assertIsNotNone(entry['id'])
-        #for key in payload:
+        # for key in payload:
         # for key in ['gradeSystemId', 'genusTypeId']:
         #    self.assertEqual(
         #        entry[key],
