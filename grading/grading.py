@@ -114,6 +114,8 @@ class GradebookDetails(utilities.BaseClass):
 
             form = gm.get_gradebook_form_for_update(utilities.clean_id(gradebook_id))
 
+            utilities.verify_at_least_one_key_present(self.data(), ['name', 'description', 'displayName'])
+
             form = utilities.set_form_basics(form, data)
             updated_gradebook = gm.update_gradebook(form)
 
