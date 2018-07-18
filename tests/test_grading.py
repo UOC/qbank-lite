@@ -1043,6 +1043,31 @@ class GradebookEntryCRUDTest(BaseGradingTestCase):
 
         return entry
 
+    def create_new_grade(self):
+        gm = get_managers()['gm']
+
+        # add grades
+        form = self.gradebook.get_grade_form_for_create(self.graded_based_grade_system.ident, [])
+        form.inputScoreStartRange = 0.0
+        form.inputScoreEndRange = 100.0
+        form.outputScore = 50.0
+
+        grade = self.gradebook.create_grade(form)
+        return grade
+
+    def create_new_graded_based_gradesystem(self):
+        gm = get_managers()['gm']
+
+        gradebook = gm.get_gradebook(self.gradebook.ident)
+
+        form = gradebook.get_grade_system_form_for_create([])
+        form.set_display_name("For testing")
+        form.based_on_grades = True
+
+        new_grade_system = gradebook.create_grade_system(form)
+
+        return new_grade_system
+
     def setUp(self):
         super(GradebookEntryCRUDTest, self).setUp()
         self.gradebook = create_new_gradebook()
@@ -1050,12 +1075,21 @@ class GradebookEntryCRUDTest(BaseGradingTestCase):
         self.gradebook_column = self.create_new_gradebook_column(self.gradebook, self.grade_system)
         self.resource_id = Id('user:xaracil@UOC.EDU')
 
+        self.graded_based_grade_system = self.create_new_graded_based_gradesystem()
+        self.grade = self.create_new_grade()
+        self.graded_based_gradebook_column = self.create_new_gradebook_column(self.gradebook,
+                                                                              self.graded_based_grade_system)
+
         self.bad_gradebook_id = 'grading.Gradebook%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
         self.bad_grade_system_id = 'grading.GradebookSystem%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
         self.bad_gradebook_column_id = 'grading.GradebookColumn%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
         self.bad_gradebook_url = self.url + '/gradebooks/{0}/entries'.format(str(self.bad_gradebook_id))
+        self.bad_gradebook_and_gradebook_column_url = self.url + '/gradebooks/{0}/columns/{1}/entries'.format(str(self.bad_gradebook_id), str(self.bad_gradebook_column_id))
         self.bad_gradebook_column_url = self.url + '/gradebooks/{0}/columns/{1}/entries'.format(str(self.gradebook.ident), str(self.bad_gradebook_column_id))
+
         self.column_url = self.url + '/gradebooks/{0}/columns/{1}/entries'.format(str(self.gradebook.ident), str(self.gradebook_column.ident))
+        self.graded_based_column_url = self.url + '/gradebooks/{0}/columns/{1}/entries'.format(str(self.gradebook.ident), str(self.graded_based_gradebook_column.ident))
+
         self.url += '/gradebooks/{0}/entries'.format(str(self.gradebook.ident))
         self.num_entries(None, 0)
 
@@ -1104,3 +1138,148 @@ class GradebookEntryCRUDTest(BaseGradingTestCase):
         entries_list = self.json(req)
         self.assertEqual(len(entries_list), 0)
         self.num_entries(None, 0)
+
+    def create_invalid_entry_and_assert_exception(self, url, payload):
+        self.assertRaises(AppError,
+                          self.app.post,
+                          url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
+        self.num_entries(None, 0)
+
+    def test_trying_to_create_grade_entry_with_invalid_gradebook_id_throws_exception(self):
+        payload = {
+            'name': 'my new grade entry',
+            'description': 'for testing with',
+            'ignoredForCalculations': True,
+            'score': 25.0,
+            'resourceId': str(self.resource_id)
+        }
+        self.create_invalid_entry_and_assert_exception(self.bad_gradebook_url, payload)
+
+        payload['columnId'] = str(self.gradebook_column.ident)
+        self.create_invalid_entry_and_assert_exception(self.bad_gradebook_and_gradebook_column_url, payload)
+
+    def test_trying_to_create_grade_entry_without_resource_throws_exception(self):
+        payload = {
+            'name': 'my new grade entry',
+            'description': 'for testing with',
+            'ignoredForCalculations': True,
+            'score': 25.0,
+
+        }
+        self.create_invalid_entry_and_assert_exception(self.column_url, payload)
+
+        payload['columnId'] = str(self.gradebook_column.ident)
+        self.create_invalid_entry_and_assert_exception(self.url, payload)
+
+    def test_trying_to_create_grade_column_with_bad_column_throws_exception(self):
+        payload = {
+            'name': 'my new grade entry',
+            'description': 'for testing with',
+            'ignoredForCalculations': True,
+            'score': 25.0,
+            'resourceId': str(self.resource_id)
+        }
+
+        self.create_invalid_entry_and_assert_exception(self.bad_gradebook_column_url, payload)
+
+        payload['columnId'] = str(self.bad_gradebook_id)
+        self.create_invalid_entry_and_assert_exception(self.url, payload)
+        self.num_entries(self.gradebook_column.ident, 0)
+
+    def create_grade_entry(self, url, payload, expected):
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        entry = self.json(req)
+        self.assertIsNotNone(entry['id'])
+        # for key in ['gradeSystemId', 'genusTypeId']:
+        #    self.assertEqual(
+        #        entry[key],
+        #        payload[key]
+        #    )
+        self.num_entries(None, expected)
+        return entry
+
+    def create_grade_entry_string(self, url, payload, expected):
+        entry = self.create_grade_entry(url, payload, expected)
+        self.assertEqual(
+            entry['displayName']['text'],
+            payload['name']
+        )
+        self.assertEqual(
+            entry['description']['text'],
+            payload['description']
+        )
+        return entry
+
+    def create_grade_entry_display_text(self, url, payload, expected):
+        entry = self.create_grade_entry(url, payload, expected)
+        for key in ['displayName', 'description']:
+            self.assertDisplayText(
+                entry[key],
+                payload[key]
+            )
+        return entry
+
+    def test_can_create_entry_name_as_string(self):
+        payload = {
+            'name': 'my new grade entry',
+            'description': 'for testing with',
+            'ignoredForCalculations': True,
+            'resourceId': str(self.resource_id)
+        }
+        self.create_grade_entry_string(self.column_url, payload, 1)
+        self.num_entries(self.gradebook_column.ident, 1)
+
+        payload['columnId'] = str(self.gradebook_column.ident)
+        self.create_grade_entry_string(self.column_url, payload, 2)
+        self.num_entries(self.gradebook_column.ident, 2)
+
+    def test_can_create_entry_name_as_dict(self):
+        payload = {
+            'displayName': self.display_text('my new grade entry'),
+            'description': self.display_text('for testing with'),
+            'ignoredForCalculations': True,
+            'resourceId': str(self.resource_id)
+        }
+        self.create_grade_entry_display_text(self.column_url, payload, 1)
+        self.num_entries(self.gradebook_column.ident, 1)
+
+        payload['columnId'] = str(self.gradebook_column.ident)
+        self.create_grade_entry_display_text(self.column_url, payload, 2)
+        self.num_entries(self.gradebook_column.ident, 2)
+
+    def test_can_create_graded_based_entry_name_as_string(self):
+        payload = {
+            'name': 'my new grade entry',
+            'description': 'for testing with',
+            'grade': str(self.grade.ident),
+            'resourceId': str(self.resource_id)
+        }
+        self.create_grade_entry_string(self.graded_based_column_url, payload, 1)
+        self.num_entries(self.graded_based_gradebook_column.ident, 1)
+        self.num_entries(self.gradebook_column.ident, 0)
+
+        payload['columnId'] = str(self.graded_based_gradebook_column.ident)
+        self.create_grade_entry_string(self.graded_based_column_url, payload, 2)
+        self.num_entries(self.graded_based_gradebook_column.ident, 2)
+        self.num_entries(self.gradebook_column.ident, 0)
+
+    def test_can_create_graded_entry_name_as_dict(self):
+        payload = {
+            'displayName': self.display_text('my new grade entry'),
+            'description': self.display_text('for testing with'),
+            'grade': str(self.grade.ident),
+            'resourceId': str(self.resource_id)
+        }
+        self.create_grade_entry_display_text(self.graded_based_column_url, payload, 1)
+        self.num_entries(self.graded_based_gradebook_column.ident, 1)
+        self.num_entries(self.gradebook_column.ident, 0)
+
+        payload['columnId'] = str(self.graded_based_gradebook_column.ident)
+        self.create_grade_entry_display_text(self.graded_based_column_url, payload, 2)
+        self.num_entries(self.graded_based_gradebook_column.ident, 2)
+        self.num_entries(self.gradebook_column.ident, 0)
