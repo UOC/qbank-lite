@@ -1,5 +1,7 @@
 import json
 
+from paste.fixture import AppError
+
 from testing_utilities import BaseTestCase, get_managers, create_new_gradebook
 
 
@@ -45,12 +47,13 @@ class GradebookCrUDTests(BaseGradingTestCase):
     def setUp(self):
         super(GradebookCrUDTests, self).setUp()
         self.url += '/gradebooks'
+        self.num_gradebooks(0)
+        self.bad_gradebook_id = 'grading.Gradebook%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
 
     def tearDown(self):
         super(GradebookCrUDTests, self).tearDown()
 
     def test_can_create_gradebooks_name_as_string(self):
-        self.num_gradebooks(0)
         payload = {
             'name': 'my new log',
             'description': 'for testing with',
@@ -72,7 +75,6 @@ class GradebookCrUDTests(BaseGradingTestCase):
         self.num_gradebooks(1)
 
     def test_can_create_gradebooks_name_as_dict(self):
-        self.num_gradebooks(0)
         payload = {
             'displayName': {
                 'formatTypeId': 'format.text%3APlain%40okapia.net',
@@ -101,14 +103,9 @@ class GradebookCrUDTests(BaseGradingTestCase):
             gradebook['description'],
             payload['description']
         )
-        self.assertDictEqual(
-            gradebook['description'],
-            payload['description']
-        )
         self.num_gradebooks(1)
 
     def test_can_list_gradebooks(self):
-        self.num_gradebooks(0)
         req = self.app.get(self.url,
                            headers={'content-type': 'application/json'})
         self.ok(req)
@@ -127,3 +124,27 @@ class GradebookCrUDTests(BaseGradingTestCase):
                 val,
                 gradebook_list[0][attr]
             )
+
+    def test_can_get_details_of_gradebooks(self):
+        gradebook = create_new_gradebook()
+        self.num_gradebooks(1)
+        url = self.url + '/' + str(gradebook.ident)
+        req = self.app.get(url)
+        self.ok(req)
+        gradebook_details = self.json(req)
+
+        for attr, val in gradebook.object_map.iteritems():
+            self.assertEqual(
+                val,
+                gradebook_details[attr]
+            )
+
+    def test_invalid_gradebook_id_throws_exception(self):
+        create_new_gradebook()
+        url = self.url + '/x'
+        self.assertRaises(AppError, self.app.get, url)
+
+    def test_bad_gradebook_id_throws_exception(self):
+        create_new_gradebook()
+        url = self.url + '/' + self.bad_gradebook_id
+        self.assertRaises(AppError, self.app.get, url)
