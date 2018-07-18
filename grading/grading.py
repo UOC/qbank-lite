@@ -395,7 +395,7 @@ class GradebookColumnDetails(utilities.BaseClass):
             gm = gutils.get_grading_manager()
             data = self.data()
             utilities.verify_at_least_one_key_present(data,
-                                                   ['name', 'description', 'gradeSystemId'])
+                                                   ['name', 'displayName', 'description', 'gradeSystemId'])
 
             gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
             gradebook_column = gradebook.get_gradebook_column(utilities.clean_id(column_id))

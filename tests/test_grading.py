@@ -863,3 +863,116 @@ class GradebookColumnCRUDTests(BaseGradingTestCase):
 
         url = self.bad_gradebook_url + '/' + str(grade_book_column.ident)
         self.assertRaises(AppError, self.app.get, url)
+
+    def test_can_update_gradebook_columns(self):
+        gradebook_column = self.create_new_gradebook_column()
+        self.num_columns(1)
+
+        url = self.url + '/' + str(gradebook_column.ident)
+
+        test_cases = [('name', 'a new name'),
+                      ('description', 'foobar')]
+        for case in test_cases:
+            payload = {
+                case[0]: case[1]
+            }
+            req = self.app.put(url,
+                               params=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+            self.ok(req)
+            updated_gradebook_column = self.json(req)
+
+            if case[0] == 'name':
+                self.assertEqual(
+                    updated_gradebook_column['displayName']['text'],
+                    case[1]
+                )
+            else:
+                self.assertEqual(
+                    updated_gradebook_column['description']['text'],
+                    case[1]
+                )
+
+        self.num_columns(1)
+
+    def test_can_update_gradebook_columns_with_dics(self):
+        gradebook_column = self.create_new_gradebook_column()
+        self.num_columns(1)
+
+        url = self.url + '/' + str(gradebook_column.ident)
+
+        test_cases = [('displayName', self.display_text('a new name')),
+                      ('description', self.display_text('foobar'))]
+        for case in test_cases:
+            payload = {
+                case[0]: case[1]
+            }
+            req = self.app.put(url,
+                               params=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+            self.ok(req)
+            updated_gradebook_column = self.json(req)
+
+            if case[0] == 'displayName':
+                self.assertDisplayText(
+                    updated_gradebook_column['displayName'],
+                    case[1]
+                )
+            else:
+                self.assertDisplayText(
+                    updated_gradebook_column['description'],
+                    case[1]
+                )
+
+        self.num_columns(1)
+
+    def test_update_with_invalid_id_throws_exception(self):
+        self.create_new_gradebook_column()
+
+        self.num_columns(1)
+
+        url = self.url + '/' + self.bad_gradebook_column_id
+
+        test_cases = [('name', 'a new name'),
+                      ('description', 'foobar')]
+        for case in test_cases:
+            payload = {
+                case[0]: case[1]
+            }
+            self.assertRaises(AppError,
+                              self.app.put,
+                              url,
+                              params=json.dumps(payload),
+                              headers={'content-type': 'application/json'})
+
+        self.num_columns(1)
+
+    def test_update_with_no_params_throws_exception(self):
+        gradebook_column = self.create_new_gradebook_column()
+        self.num_columns(1)
+
+        url = self.url + '/' + str(gradebook_column.ident)
+
+        test_cases = [('foo', 'bar'),
+                      ('bankId', 'foobar')]
+        for case in test_cases:
+            payload = {
+                case[0]: case[1]
+            }
+            self.assertRaises(AppError,
+                              self.app.put,
+                              url,
+                              params=json.dumps(payload),
+                              headers={'content-type': 'application/json'})
+
+        self.num_columns(1)
+        req = self.app.get(url)
+        gradebook_column_fresh = self.json(req)
+
+        gradebook_column_map = gradebook_column.object_map
+        params_to_test = ['id', 'displayName', 'description']
+        for param in params_to_test:
+            self.assertEqual(
+                gradebook_column_map[param],
+                gradebook_column_fresh[param]
+            )
