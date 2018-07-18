@@ -1,5 +1,7 @@
 import json
 
+from dlkit.runtime.primordium import Id
+
 from paste.fixture import AppError
 
 from testing_utilities import BaseTestCase, get_managers, create_new_gradebook
@@ -13,22 +15,30 @@ class BaseGradingTestCase(BaseTestCase):
     def tearDown(self):
         super(BaseGradingTestCase, self).tearDown()
 
+    def display_text(self, text):
+        return {
+                'formatTypeId': 'format.text%3APlain%40okapia.net',
+                'languageTypeId': '639-2%3AENG%40iso.org',
+                'scriptTypeId': '15924%3ALATN%40iso.org',
+                'text': text
+            }
+
     def assertDisplayText(self, first, second):
         self.assertEqual(
-            first['formatTypeId'],
-            first['formatTypeId']
+            Id(first['formatTypeId']).identifier.upper(),
+            Id(second['formatTypeId']).identifier.upper()
         )
         self.assertEqual(
-            first['languageTypeId'],
-            first['languageTypeId']
+            Id(first['languageTypeId']).identifier.upper(),
+            Id(second['languageTypeId']).identifier.upper()
         )
         self.assertEqual(
-            first['scriptTypeId'],
-            first['scriptTypeId']
+            Id(first['scriptTypeId']).identifier.upper(),
+            Id(second['scriptTypeId']).identifier.upper()
         )
         self.assertEqual(
             first['text'],
-            first['text']
+            second['text']
         )
 
 
@@ -80,18 +90,8 @@ class GradebookCrUDTests(BaseGradingTestCase):
 
     def test_can_create_gradebooks_name_as_dict(self):
         payload = {
-            'displayName': {
-                'formatTypeId': 'format.text%3APlain%40okapia.net',
-                'languageTypeId': '639-2%3AENG%40iso.org',
-                'scriptTypeId': '15924%3ALATN%40iso.org',
-                'text': 'Default Gradebook'
-            },
-            'description': {
-                'formatTypeId': 'format.text%3APlain%40okapia.net',
-                'languageTypeId': '639-2%3AENG%40iso.org',
-                'scriptTypeId': '15924%3ALATN%40iso.org',
-                'text': 'for testing with'
-            },
+            'displayName': self.display_text('Default Gradebook'),
+            'description': self.display_text('for testing with'),
             'genusTypeId': 'gradebook-genus-type%3Adefault-gradebook%40ODL.MIT.EDU'
         }
         gradebook = self.create_gradebook(payload)
@@ -105,16 +105,14 @@ class GradebookCrUDTests(BaseGradingTestCase):
         )
 
     def test_can_list_gradebooks(self):
-        req = self.app.get(self.url,
-                           headers={'content-type': 'application/json'})
+        req = self.app.get(self.url)
         self.ok(req)
         gradebook_list = self.json(req)
         self.assertEqual(len(gradebook_list), 0)
 
         gradebook = create_new_gradebook()
         self.num_gradebooks(1)
-        req = self.app.get(self.url,
-                           headers={'content-type': 'application/json'})
+        req = self.app.get(self.url)
         self.ok(req)
         gradebook_list = self.json(req)
         self.assertEqual(len(gradebook_list), 1)
@@ -185,18 +183,8 @@ class GradebookCrUDTests(BaseGradingTestCase):
 
         url = self.url + '/' + str(gradebook.ident)
 
-        test_cases = [('displayName', {
-                            'formatTypeId': 'format.text%3APlain%40okapia.net',
-                            'languageTypeId': '639-2%3AENG%40iso.org',
-                            'scriptTypeId': '15924%3ALATN%40iso.org',
-                            'text': 'a new name'
-                        }),
-                      ('description', {
-                          'formatTypeId': 'format.text%3APlain%40okapia.net',
-                          'languageTypeId': '639-2%3AENG%40iso.org',
-                          'scriptTypeId': '15924%3ALATN%40iso.org',
-                          'text': 'foobar'
-                      })]
+        test_cases = [('displayName', self.display_text('a new name')),
+                      ('description', self.display_text('foobar'))]
         for case in test_cases:
             payload = {
                 case[0]: case[1]
@@ -207,7 +195,7 @@ class GradebookCrUDTests(BaseGradingTestCase):
             self.ok(req)
             updated_gradebook = self.json(req)
 
-            if case[0] == 'name':
+            if case[0] == 'displayName':
                 self.assertDisplayText(
                     updated_gradebook['displayName'],
                     case[1]
@@ -294,3 +282,200 @@ class GradebookCrUDTests(BaseGradingTestCase):
         self.assertRaises(AppError, self.app.delete, url)
 
         self.num_gradebooks(1)
+
+
+class GradeSystemCrUDTests(BaseGradingTestCase):
+    """Test basic CRUD operations on GradeSystems
+
+    """
+    def num_gradesystems(self, val):
+        gm = get_managers()['gm']
+
+        gradebook = gm.get_gradebook(self.gradebook.ident)
+        self.assertEqual(
+            gradebook.get_grade_systems().available(),
+            val
+        )
+
+    def setup_gradesystem(self, text):
+        gm = get_managers()['gm']
+
+        gradebook = gm.get_gradebook(self.gradebook.ident)
+
+        form = gradebook.get_grade_system_form_for_create([])
+        form.set_display_name(text)
+
+        new_grade_system = gradebook.create_grade_system(form)
+
+        return new_grade_system
+
+    def setUp(self):
+        super(GradeSystemCrUDTests, self).setUp()
+        self.gradebook = create_new_gradebook()
+        self.bad_gradebook_id = 'grading.Gradebook%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
+        self.bad_gradesystem_id = 'grading.GradeSystem%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
+        self.bad_gradebook_url = self.url + '/gradebooks/{0}/gradesystems'.format(str(self.bad_gradebook_id))
+        self.url += '/gradebooks/{0}/gradesystems'.format(str(self.gradebook.ident))
+        self.num_gradesystems(0)
+
+    def tearDown(self):
+        super(GradeSystemCrUDTests, self).tearDown()
+
+    def test_can_get_gradesystems(self):
+        req = self.app.get(self.url)
+        self.ok(req)
+        gradesystem_list = self.json(req)
+        self.assertEqual(len(gradesystem_list), 0)
+
+        gradesystem = self.setup_gradesystem('foo')
+        self.num_gradesystems(1)
+
+        req = self.app.get(self.url)
+        self.ok(req)
+        gradesystem_list = self.json(req)
+        self.assertEqual(
+            len(gradesystem_list),
+            1
+        )
+        for attr, val in gradesystem.object_map.iteritems():
+            self.assertEqual(
+                val,
+                gradesystem_list[0][attr]
+            )
+
+    def test_can_create_gradesystem_not_based_on_scores(self):
+        payload = {
+            'displayName': self.display_text('Scored based grade system'),
+            'description': self.display_text('for testing with'),
+            'genusTypeId': 'grade-system%3Apercentage%40UOC.EDU',
+            'basedOnGrades': False,
+            'highestNumericScore': 100,
+            'lowestNumericScore': 0,
+            'numericScoreIncrement': 10
+        }
+
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        data = self.json(req)
+        self.assertIsNotNone(data['id'])
+        for attr, val in payload.iteritems():
+            if attr == 'displayName' or attr == 'description':
+                self.assertDisplayText(val, data[attr])
+            else:
+                self.assertEqual(
+                    val,
+                    data[attr]
+                )
+        self.num_gradesystems(1)
+
+    def test_trying_to_create_gradesystem_on_invalid_gradebook_throws_exception(self):
+        payload = {
+            'displayName': self.display_text('Scored based grade system'),
+            'description': self.display_text('for testing with'),
+            'genusTypeId': 'grade-system%3Apercentage%40UOC.EDU',
+            'basedOnGrades': False,
+            'highestNumericScore': 100,
+            'lowestNumericScore': 0,
+            'numericScoreIncrement': 10
+        }
+        self.assertRaises(AppError,
+                          self.app.post,
+                          self.bad_gradebook_url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
+
+        self.num_gradesystems(0)
+
+    def test_trying_to_create_gradesystem_not_based_on_scores_with_no_numeric_scores_throws_exception(self):
+        test_cases = [('highestNumericScore', 100),
+                      ('lowestNumericScore', 0),
+                      ('numericScoreIncrement', 10)]
+        for case in test_cases:
+            payload = {
+                'displayName': self.display_text('Scored based grade system'),
+                'description': self.display_text('for testing with'),
+                'genusTypeId': 'grade-system%3Apercentage%40UOC.EDU',
+                'basedOnGrades': False,
+                case[0]: case[1]
+            }
+            self.assertRaises(AppError,
+                              self.app.post,
+                              self.url,
+                              params=json.dumps(payload),
+                              headers={'content-type': 'application/json'})
+
+        self.num_gradesystems(0)
+
+    def test_can_create_gradesystem_based_on_scores(self):
+        payload = {
+            'displayName': self.display_text('Scored based grade system'),
+            'description': self.display_text('for testing with'),
+            'genusTypeId': 'grade-system%3Apercentage%40UOC.EDU',
+            'basedOnGrades': True,
+            'grades': [
+                {
+                    "inputScoreStartRange": 0,
+                    "inputScoreEndRange": 25,
+                    "outputScore": 0,
+                    "name": "No Assoliment",
+                    "description": "No Assoliment"
+                },
+                {
+                    "inputScoreStartRange": 25,
+                    "inputScoreEndRange": 50,
+                    "outputScore": 0,
+                    "name": "Assolit Parcialment",
+                    "description": "Assolit Parcialment"
+                }
+            ]
+        }
+
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        data = self.json(req)
+        self.assertIsNotNone(data['id'])
+        self.assertEqual(len(data['grades']), len(payload['grades']))
+        for attr, val in payload.iteritems():
+            if attr == 'displayName' or attr == 'description':
+                self.assertDisplayText(val, data[attr])
+            elif attr == 'grades':
+                pass
+            else:
+                self.assertEqual(
+                    val,
+                    data[attr]
+                )
+        self.num_gradesystems(1)
+
+    def test_trying_to_create_gradesystem_based_on_scores_with_grades_throws_exception(self):
+        payload = {
+            'displayName': self.display_text('Scored based grade system'),
+            'description': self.display_text('for testing with'),
+            'genusTypeId': 'grade-system%3Apercentage%40UOC.EDU',
+            'basedOnGrades': True
+        }
+
+        self.assertRaises(AppError,
+                          self.app.post,
+                          self.url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
+
+        self.num_gradesystems(0)
+
+        payload['grades'] = True
+
+        self.assertRaises(AppError,
+                          self.app.post,
+                          self.url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
+
+        self.num_gradesystems(0)
+

@@ -185,9 +185,9 @@ class GradebookGradeSystemList(utilities.BaseClass):
             if check_scores:
                 gutils.check_numeric_score_inputs(data)
 
-                form.set_highest_numeric_score(float(data['highestScore']))
-                form.set_lowest_numeric_score(float(data['lowestScore']))
-                form.set_numeric_score_increment(float(data['scoreIncrement']))
+                form.set_highest_numeric_score(float(data['highestNumericScore']))
+                form.set_lowest_numeric_score(float(data['lowestNumericScore']))
+                form.set_numeric_score_increment(float(data['numericScoreIncrement']))
 
             grade_system = gradebook.create_grade_system(form)
 

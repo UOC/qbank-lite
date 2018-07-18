@@ -41,7 +41,7 @@ def check_grade_inputs(data):
 
 
 def check_numeric_score_inputs(data):
-    expected_score_inputs = ['highestScore', 'lowestScore', 'scoreIncrement']
+    expected_score_inputs = ['highestNumericScore', 'lowestNumericScore', 'numericScoreIncrement']
     utilities.verify_keys_present(data, expected_score_inputs)
 
 def validate_score_and_grades_against_system(grade_system, data):
