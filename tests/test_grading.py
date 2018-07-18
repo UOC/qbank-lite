@@ -1101,6 +1101,7 @@ class GradebookEntryCRUDTest(BaseGradingTestCase):
         self.bad_gradebook_id = 'grading.Gradebook%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
         self.bad_grade_system_id = 'grading.GradebookSystem%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
         self.bad_gradebook_column_id = 'grading.GradebookColumn%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
+        self.bad_entry_id = 'grading.GradeEntry%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
         self.bad_gradebook_url = self.url + '/gradebooks/{0}/entries'.format(str(self.bad_gradebook_id))
         self.bad_gradebook_and_gradebook_column_url = self.url + '/gradebooks/{0}/columns/{1}/entries'.format(str(self.bad_gradebook_id), str(self.bad_gradebook_column_id))
         self.bad_gradebook_column_url = self.url + '/gradebooks/{0}/columns/{1}/entries'.format(str(self.gradebook.ident), str(self.bad_gradebook_column_id))
@@ -1359,3 +1360,123 @@ class GradebookEntryCRUDTest(BaseGradingTestCase):
 
         url = self.bad_gradebook_url + '/' + str(entry.ident)
         self.assertRaises(AppError, self.app.get, url)
+
+    def test_can_update_entry_columns(self):
+        entry = self.create_new_graded_entry()
+        self.num_entries(None, 1)
+        self.num_entries(self.graded_based_gradebook_column.ident, 1)
+
+        url = self.url + '/' + str(entry.ident)
+
+        test_cases = [('name', 'a new name'),
+                      ('description', 'foobar')]
+        for case in test_cases:
+            payload = {
+                case[0]: case[1]
+            }
+            req = self.app.put(url,
+                               params=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+            self.ok(req)
+            updated_entry = self.json(req)
+
+            if case[0] == 'name':
+                self.assertEqual(
+                    updated_entry['displayName']['text'],
+                    case[1]
+                )
+            else:
+                self.assertEqual(
+                    updated_entry['description']['text'],
+                    case[1]
+                )
+
+        self.num_entries(None, 1)
+        self.num_entries(self.graded_based_gradebook_column.ident, 1)
+
+    def test_can_update_entry_with_dics(self):
+        entry = self.create_new_graded_entry()
+        self.num_entries(None, 1)
+        self.num_entries(self.graded_based_gradebook_column.ident, 1)
+
+        url = self.url + '/' + str(entry.ident)
+
+        test_cases = [('displayName', self.display_text('a new name')),
+                      ('description', self.display_text('foobar'))]
+        for case in test_cases:
+            payload = {
+                case[0]: case[1]
+            }
+            req = self.app.put(url,
+                               params=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+            self.ok(req)
+            updated_entry = self.json(req)
+
+            if case[0] == 'displayName':
+                self.assertDisplayText(
+                    updated_entry['displayName'],
+                    case[1]
+                )
+            else:
+                self.assertDisplayText(
+                    updated_entry['description'],
+                    case[1]
+                )
+
+        self.num_entries(None, 1)
+        self.num_entries(self.graded_based_gradebook_column.ident, 1)
+
+    def test_update_with_invalid_id_throws_exception(self):
+        self.create_new_graded_entry()
+        self.num_entries(None, 1)
+        self.num_entries(self.graded_based_gradebook_column.ident, 1)
+
+        url = self.url + '/' + self.bad_entry_id
+
+        test_cases = [('name', 'a new name'),
+                      ('description', 'foobar')]
+        for case in test_cases:
+            payload = {
+                case[0]: case[1]
+            }
+            self.assertRaises(AppError,
+                              self.app.put,
+                              url,
+                              params=json.dumps(payload),
+                              headers={'content-type': 'application/json'})
+
+        self.num_entries(None, 1)
+        self.num_entries(self.graded_based_gradebook_column.ident, 1)
+
+    def test_update_with_no_params_throws_exception(self):
+        entry = self.create_new_graded_entry()
+        self.num_entries(None, 1)
+        self.num_entries(self.graded_based_gradebook_column.ident, 1)
+
+        url = self.url + '/' + str(entry.ident)
+
+        test_cases = [('foo', 'bar'),
+                      ('bankId', 'foobar')]
+        for case in test_cases:
+            payload = {
+                case[0]: case[1]
+            }
+            self.assertRaises(AppError,
+                              self.app.put,
+                              url,
+                              params=json.dumps(payload),
+                              headers={'content-type': 'application/json'})
+
+        self.num_entries(None, 1)
+        self.num_entries(self.graded_based_gradebook_column.ident, 1)
+        req = self.app.get(url)
+        entry_fresh = self.json(req)
+
+        entry_map = entry.object_map
+        params_to_test = ['id', 'displayName', 'description']
+        for param in params_to_test:
+            self.assertEqual(
+                entry_map[param],
+                entry_fresh[param]
+            )
