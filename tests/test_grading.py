@@ -271,3 +271,26 @@ class GradebookCrUDTests(BaseGradingTestCase):
                 gradebook_map[param],
                 gradebook_fresh[param]
             )
+
+    def test_can_delete_gradebook(self):
+        gradebook = create_new_gradebook()
+
+        self.num_gradebooks(1)
+
+        url = self.url + '/' + str(gradebook.ident)
+        req = self.app.delete(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
+
+        self.num_gradebooks(0)
+
+    def test_trying_to_delete_gradebook_with_invalid_id_throws_exception(self):
+        create_new_gradebook()
+
+        self.num_gradebooks(1)
+
+        url = self.url + '/' + self.bad_gradebook_id
+        self.assertRaises(AppError, self.app.delete, url)
+
+        self.num_gradebooks(1)
