@@ -40,7 +40,7 @@ class BaseGradingTestCase(BaseTestCase):
         )
 
 
-class GradebookCrUDTests(BaseGradingTestCase):
+class GradebookCRUDTests(BaseGradingTestCase):
     """Test basic CRUD operations on gradebook
 
     """
@@ -53,13 +53,13 @@ class GradebookCrUDTests(BaseGradingTestCase):
         )
 
     def setUp(self):
-        super(GradebookCrUDTests, self).setUp()
+        super(GradebookCRUDTests, self).setUp()
         self.url += '/gradebooks'
         self.num_gradebooks(0)
         self.bad_gradebook_id = 'grading.Gradebook%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
 
     def tearDown(self):
-        super(GradebookCrUDTests, self).tearDown()
+        super(GradebookCRUDTests, self).tearDown()
 
     def create_gradebook(self, payload):
         req = self.app.post(self.url,
@@ -282,7 +282,7 @@ class GradebookCrUDTests(BaseGradingTestCase):
         self.num_gradebooks(1)
 
 
-class GradeSystemCrUDTests(BaseGradingTestCase):
+class GradeSystemCRUDTests(BaseGradingTestCase):
     """Test basic CRUD operations on GradeSystems
 
     """
@@ -308,7 +308,7 @@ class GradeSystemCrUDTests(BaseGradingTestCase):
         return new_grade_system
 
     def setUp(self):
-        super(GradeSystemCrUDTests, self).setUp()
+        super(GradeSystemCRUDTests, self).setUp()
         self.gradebook = create_new_gradebook()
         self.bad_gradebook_id = 'grading.Gradebook%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
         self.bad_gradesystem_id = 'grading.GradeSystem%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
@@ -318,7 +318,7 @@ class GradeSystemCrUDTests(BaseGradingTestCase):
         self.num_gradesystems(0)
 
     def tearDown(self):
-        super(GradeSystemCrUDTests, self).tearDown()
+        super(GradeSystemCRUDTests, self).tearDown()
 
     def test_can_get_gradesystems(self):
         req = self.app.get(self.url)
