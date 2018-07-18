@@ -36,8 +36,8 @@ MANAGER_PATHS = {
                     'dlkit.authz_adapter.logging_.managers.LoggingProxyManager'),
         'CATALOGING': ('dlkit.authz_adapter.cataloging.managers.CatalogingManager',
                        'dlkit.authz_adapter.cataloging.managers.CatalogingProxyManager'),
-        'GRADING': ('dlkit.authz_adapter.grading.managers.CatalogingManager',
-                       'dlkit.authz_adapter.grading.managers.CatalogingProxyManager'),
+        'GRADING': ('dlkit.authz_adapter.grading.managers.GradingManager',
+                       'dlkit.authz_adapter.grading.managers.GradingProxyManager'),
     },
     # 'filesystem': {
     #     'ASSESSMENT': ('dlkit.filesystem.assessment.managers.AssessmentManager',
