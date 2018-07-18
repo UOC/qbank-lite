@@ -13,6 +13,18 @@ class BaseGradingTestCase(BaseTestCase):
     def tearDown(self):
         super(BaseGradingTestCase, self).tearDown()
 
+    def setup_gradesystem(self, gradebook, text):
+        gm = get_managers()['gm']
+
+        gradebook = gm.get_gradebook(gradebook.ident)
+
+        form = gradebook.get_grade_system_form_for_create([])
+        form.set_display_name(text)
+
+        new_grade_system = gradebook.create_grade_system(form)
+
+        return new_grade_system
+
     def display_text(self, text):
         return {
             'formatTypeId': 'TextFormats%3APLAIN%40okapia.net',
@@ -296,16 +308,7 @@ class GradeSystemCRUDTests(BaseGradingTestCase):
         )
 
     def setup_gradesystem(self, text):
-        gm = get_managers()['gm']
-
-        gradebook = gm.get_gradebook(self.gradebook.ident)
-
-        form = gradebook.get_grade_system_form_for_create([])
-        form.set_display_name(text)
-
-        new_grade_system = gradebook.create_grade_system(form)
-
-        return new_grade_system
+        return super(GradeSystemCRUDTests, self).setup_gradesystem(self.gradebook, text)
 
     def setUp(self):
         super(GradeSystemCRUDTests, self).setUp()
@@ -682,3 +685,59 @@ class GradeSystemCRUDTests(BaseGradingTestCase):
         self.assertRaises(AppError, self.app.delete, self.gradebook_url)
 
         self.num_gradesystems(1)
+
+
+class GradebookColumnCRUDTests(BaseGradingTestCase):
+    def num_columns(self, val):
+        gm = get_managers()['gm']
+
+        gradebook = gm.get_gradebook(self.gradebook.ident)
+        self.assertEqual(
+            gradebook.get_gradebook_columns().available(),
+            val
+        )
+
+    def create_new_gradebook_column(self):
+        self.grade_system = self.setup_gradesystem(self.gradebook, "for testing only")
+
+        gm = get_managers()['gm']
+
+        gradebook = gm.get_gradebook(self.gradebook.ident)
+
+        form = gradebook.get_gradebook_column_form_for_create([])
+        form.set_display_name("for testing only")
+        form.set_grade_system(self.grade_system.ident)
+
+        new_column = gradebook.create_gradebook_column(form)
+
+        return new_column
+
+    def setUp(self):
+        super(GradebookColumnCRUDTests, self).setUp()
+        self.gradebook = create_new_gradebook()
+        self.bad_gradebook_id = 'grading.Gradebook%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
+        self.bad_gradebook_url = self.url + '/gradebooks/{0}/columns'.format(str(self.bad_gradebook_id))
+        self.gradebook_url = self.url + '/gradebooks/{0}'.format(str(self.gradebook.ident))
+        self.url += '/gradebooks/{0}/columns'.format(str(self.gradebook.ident))
+        self.num_columns(0)
+
+    def tearDown(self):
+        super(GradebookColumnCRUDTests, self).tearDown()
+
+    def test_can_list_gradebook_columns(self):
+        req = self.app.get(self.url)
+        self.ok(req)
+        gradebook_column_list = self.json(req)
+        self.assertEqual(len(gradebook_column_list), 0)
+
+        gradebook_column = self.create_new_gradebook_column()
+        self.num_columns(1)
+        req = self.app.get(self.url)
+        self.ok(req)
+        gradebook_column_list = self.json(req)
+        self.assertEqual(len(gradebook_column_list), 1)
+        for attr, val in gradebook_column.object_map.iteritems():
+            self.assertEqual(
+                val,
+                gradebook_column_list[0][attr]
+            )
