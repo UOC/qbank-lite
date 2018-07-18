@@ -303,7 +303,7 @@ def set_form_basics(form, data):
             form.add_display_name(create_display_text(_grab_first_match(name_keys)))
         except AttributeError:
             # to support legacy data
-            form.display_name = _grab_first_match(name_keys)
+            form.display_name = create_display_text(_grab_first_match(name_keys))
 
     if 'editName' in data:
         new_name = create_display_text(data['editName'])
@@ -317,7 +317,7 @@ def set_form_basics(form, data):
             form.add_description(create_display_text(_grab_first_match(description_keys)))
         except AttributeError:
             # to support legacy data
-            form.description = _grab_first_match(description_keys)
+            form.description = create_display_text(_grab_first_match(description_keys))
 
     if 'editDescription' in data:
         new_description = create_display_text(data['editDescription'])
