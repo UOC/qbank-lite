@@ -105,14 +105,11 @@ class GradebookCRUDTests(BaseGradingTestCase):
             'genusTypeId': 'gradebook-genus-type%3Adefault-gradebook%40ODL.MIT.EDU'
         }
         gradebook = self.create_gradebook(payload)
-        self.assertDisplayText(
-            gradebook['displayName'],
-            payload['displayName']
-        )
-        self.assertDisplayText(
-            gradebook['description'],
-            payload['description']
-        )
+        for key in ['displayName', 'description']:
+            self.assertDisplayText(
+                gradebook[key],
+                payload[key]
+            )
 
     def test_can_list_gradebooks(self):
         req = self.app.get(self.url)
@@ -706,8 +703,9 @@ class GradebookColumnCRUDTests(BaseGradingTestCase):
         self.gradebook = create_new_gradebook()
         self.grade_system = self.setup_gradesystem(self.gradebook, "for testing only")
         self.bad_gradebook_id = 'grading.Gradebook%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
+        self.bad_grade_system_id = 'grading.GradebookSystem%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
+        self.bad_gradebook_column_id = 'grading.GradebookColumn%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
         self.bad_gradebook_url = self.url + '/gradebooks/{0}/columns'.format(str(self.bad_gradebook_id))
-        self.gradebook_url = self.url + '/gradebooks/{0}'.format(str(self.gradebook.ident))
         self.url += '/gradebooks/{0}/columns'.format(str(self.gradebook.ident))
         self.num_columns(0)
 
@@ -767,6 +765,22 @@ class GradebookColumnCRUDTests(BaseGradingTestCase):
 
         self.num_columns(0)
 
+    def test_trying_to_create_grade_column_with_bad_grade_system_throws_exception(self):
+        payload = {
+            'name': 'my new grade column',
+            'description': 'for testing with',
+            'genusTypeId': 'gradecolumn-genus-type%3Adefault-gradecolumn%40ODL.MIT.EDU',
+            'gradeSystemId': self.bad_grade_system_id
+
+        }
+        self.assertRaises(AppError,
+                          self.app.post,
+                          self.url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
+
+        self.num_columns(0)
+
     def create_grade_column(self, payload):
         req = self.app.post(self.url,
                             params=json.dumps(payload),
@@ -811,3 +825,41 @@ class GradebookColumnCRUDTests(BaseGradingTestCase):
                 gradebook_column[key],
                 payload[key]
             )
+
+    def test_can_get_gradecolumns_details(self):
+        gradebook_column = self.create_new_gradebook_column()
+
+        self.num_columns(1)
+
+        url = self.url + '/' + str(gradebook_column.ident)
+
+        req = self.app.get(url)
+        self.ok(req)
+        gradebook_column_details = self.json(req)
+
+        for attr, val in gradebook_column.object_map.iteritems():
+            self.assertEqual(
+                val,
+                gradebook_column_details[attr]
+            )
+
+    def test_invalid_gradebook_column_id_throws_exception(self):
+        self.create_new_gradebook_column()
+        self.num_columns(1)
+
+        url = self.url + '/x'
+        self.assertRaises(AppError, self.app.get, url)
+
+    def test_bad_gradebook_column_id_throws_exception(self):
+        self.create_new_gradebook_column()
+        self.num_columns(1)
+
+        url = self.url + '/' + self.bad_gradebook_column_id
+        self.assertRaises(AppError, self.app.get, url)
+
+    def test_bad_gradebook_id_throws_exception(self):
+        grade_book_column = self.create_new_gradebook_column()
+        self.num_columns(1)
+
+        url = self.bad_gradebook_url + '/' + str(grade_book_column.ident)
+        self.assertRaises(AppError, self.app.get, url)

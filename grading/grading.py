@@ -349,6 +349,7 @@ class GradebookColumnsList(utilities.BaseClass):
 
             data = self.data()
             utilities.verify_keys_present(data, ['gradeSystemId'])
+            gutils.validate_grade_system_exists(gradebook, utilities.clean_id(data['gradeSystemId']))
 
             form = gradebook.get_gradebook_column_form_for_create([])
             form = utilities.set_form_basics(form, data)

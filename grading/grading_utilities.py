@@ -13,6 +13,7 @@ DEFAULT_LANGUAGE_TYPE = Type(**types.Language().get_type_data('DEFAULT'))
 DEFAULT_SCRIPT_TYPE = Type(**types.Script().get_type_data('DEFAULT'))
 DEFAULT_FORMAT_TYPE = Type(**types.Format().get_type_data('DEFAULT'))
 
+
 def add_grades_to_grade_system(gradebook, grade_system, data):
     try:
         attrs_to_check = ['inputScoreStartRange', 'inputScoreEndRange', 'outputScore',
@@ -34,6 +35,7 @@ def add_grades_to_grade_system(gradebook, grade_system, data):
     except KeyError as ex:
         raise InvalidArgument('"{}" expected in grade object.'.format(str(ex.args[0])))
 
+
 def check_grade_inputs(data):
     utilities.verify_keys_present(data, 'grades')
     if not isinstance(data['grades'], list):
@@ -44,11 +46,16 @@ def check_numeric_score_inputs(data):
     expected_score_inputs = ['highestNumericScore', 'lowestNumericScore', 'numericScoreIncrement']
     utilities.verify_keys_present(data, expected_score_inputs)
 
+
 def validate_score_and_grades_against_system(grade_system, data):
     if grade_system.is_based_on_grades() and 'score' in data:
         raise InvalidArgument('You cannot set a numeric score when using a grade-based system.')
     if not grade_system.is_based_on_grades() and 'grade' in data:
         raise InvalidArgument('You cannot set a grade when using a numeric score-based system.')
+
+
+def validate_grade_system_exists(gradebook, grade_system_id):
+    gradebook.get_grade_system(grade_system_id)
 
 def get_grading_manager():
     condition = PROXY_SESSION.get_proxy_condition()
