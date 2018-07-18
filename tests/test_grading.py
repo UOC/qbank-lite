@@ -976,3 +976,33 @@ class GradebookColumnCRUDTests(BaseGradingTestCase):
                 gradebook_column_map[param],
                 gradebook_column_fresh[param]
             )
+
+    def test_can_delete_gradebook_column(self):
+        gradebook_column = self.create_new_gradebook_column()
+        self.num_columns(1)
+
+        url = self.url + '/' + str(gradebook_column.ident)
+        req = self.app.delete(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
+
+        self.num_columns(0)
+
+    def test_trying_to_delete_gradebook_column_with_invalid_id_throws_exception(self):
+        self.create_new_gradebook_column()
+        self.num_columns(1)
+
+        url = self.url + '/' + self.bad_grade_system_id
+        self.assertRaises(AppError, self.app.delete, url)
+
+        self.num_columns(1)
+
+    def test_trying_to_delete_gradebook_column_with_invalid_gradebook_id_throws_exception(self):
+        gradebook_column = self.create_new_gradebook_column()
+        self.num_columns(1)
+
+        url = self.bad_gradebook_url + '/' + str(gradebook_column.ident)
+        self.assertRaises(AppError, self.app.delete, url)
+
+        self.num_columns(1)
