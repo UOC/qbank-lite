@@ -1,7 +1,5 @@
 import json
 
-from dlkit.runtime.primordium import Id
-
 from paste.fixture import AppError
 
 from testing_utilities import BaseTestCase, get_managers, create_new_gradebook
@@ -17,24 +15,24 @@ class BaseGradingTestCase(BaseTestCase):
 
     def display_text(self, text):
         return {
-                'formatTypeId': 'format.text%3APlain%40okapia.net',
-                'languageTypeId': '639-2%3AENG%40iso.org',
-                'scriptTypeId': '15924%3ALATN%40iso.org',
-                'text': text
-            }
+            'formatTypeId': 'TextFormat%3APlain%40okapia.net',
+            'languageTypeId': '639-2%3AENG%40ISO',
+            'scriptTypeId': '15924%3ALATN%40ISO',
+            'text': text
+        }
 
     def assertDisplayText(self, first, second):
         self.assertEqual(
-            Id(first['formatTypeId']).identifier.upper(),
-            Id(second['formatTypeId']).identifier.upper()
+            first['formatTypeId'],
+            second['formatTypeId']
         )
         self.assertEqual(
-            Id(first['languageTypeId']).identifier.upper(),
-            Id(second['languageTypeId']).identifier.upper()
+            first['languageTypeId'],
+            second['languageTypeId']
         )
         self.assertEqual(
-            Id(first['scriptTypeId']).identifier.upper(),
-            Id(second['scriptTypeId']).identifier.upper()
+            first['scriptTypeId'],
+            second['scriptTypeId']
         )
         self.assertEqual(
             first['text'],
