@@ -84,7 +84,7 @@ class GradebookCRUDTests(BaseGradingTestCase):
 
     def test_can_create_gradebooks_name_as_string(self):
         payload = {
-            'name': 'my new log',
+            'name': 'my new gradebook',
             'description': 'for testing with',
             'genusTypeId': 'gradebook-genus-type%3Adefault-gradebook%40ODL.MIT.EDU'
         }
@@ -689,8 +689,6 @@ class GradebookColumnCRUDTests(BaseGradingTestCase):
         )
 
     def create_new_gradebook_column(self):
-        self.grade_system = self.setup_gradesystem(self.gradebook, "for testing only")
-
         gm = get_managers()['gm']
 
         gradebook = gm.get_gradebook(self.gradebook.ident)
@@ -706,6 +704,7 @@ class GradebookColumnCRUDTests(BaseGradingTestCase):
     def setUp(self):
         super(GradebookColumnCRUDTests, self).setUp()
         self.gradebook = create_new_gradebook()
+        self.grade_system = self.setup_gradesystem(self.gradebook, "for testing only")
         self.bad_gradebook_id = 'grading.Gradebook%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
         self.bad_gradebook_url = self.url + '/gradebooks/{0}/columns'.format(str(self.bad_gradebook_id))
         self.gradebook_url = self.url + '/gradebooks/{0}'.format(str(self.gradebook.ident))
@@ -737,3 +736,78 @@ class GradebookColumnCRUDTests(BaseGradingTestCase):
         self.assertRaises(AppError, self.app.get, self.bad_gradebook_url)
 
         self.num_columns(0)
+
+    def test_trying_to_create_grade_column_with_invalid_gradebook_id_throws_exception(self):
+        payload = {
+            'name': 'my new grade column',
+            'description': 'for testing with',
+            'genusTypeId': 'gradecolumn-genus-type%3Adefault-gradecolumn%40ODL.MIT.EDU',
+
+        }
+        self.assertRaises(AppError,
+                          self.app.post,
+                          self.bad_gradebook_url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
+
+        self.num_columns(0)
+
+    def test_trying_to_create_grade_column_without_grade_system_throws_exception(self):
+        payload = {
+            'name': 'my new grade column',
+            'description': 'for testing with',
+            'genusTypeId': 'gradecolumn-genus-type%3Adefault-gradecolumn%40ODL.MIT.EDU',
+
+        }
+        self.assertRaises(AppError,
+                          self.app.post,
+                          self.url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
+
+        self.num_columns(0)
+
+    def create_grade_column(self, payload):
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        gradebook_column = self.json(req)
+        self.num_columns(1)
+        for key in ['gradeSystemId', 'genusTypeId']:
+            self.assertEqual(
+                gradebook_column[key],
+                payload[key]
+            )
+        return gradebook_column
+
+    def test_can_create_grade_column_name_as_string(self):
+        payload = {
+            'name': 'my new grade column',
+            'description': 'for testing with',
+            'genusTypeId': 'gradecolumn-genus-type%3Adefault-gradecolumn%40ODL.MIT.EDU',
+            'gradeSystemId': str(self.grade_system.ident)
+        }
+        gradebook_column = self.create_grade_column(payload)
+        self.assertEqual(
+            gradebook_column['displayName']['text'],
+            payload['name']
+        )
+        self.assertEqual(
+            gradebook_column['description']['text'],
+            payload['description']
+        )
+
+    def test_can_create_grade_column_name_as_dict(self):
+        payload = {
+            'displayName': self.display_text('my new grade column'),
+            'description': self.display_text('for testing with'),
+            'genusTypeId': 'gradecolumn-genus-type%3Adefault-gradecolumn%40ODL.MIT.EDU',
+            'gradeSystemId': str(self.grade_system.ident)
+        }
+        gradebook_column = self.create_grade_column(payload)
+        for key in ['displayName', 'description']:
+            self.assertDisplayText(
+                gradebook_column[key],
+                payload[key]
+            )
