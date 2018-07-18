@@ -15,7 +15,7 @@ class BaseGradingTestCase(BaseTestCase):
 
     def display_text(self, text):
         return {
-            'formatTypeId': 'TextFormat%3APlain%40okapia.net',
+            'formatTypeId': 'TextFormats%3APLAIN%40okapia.net',
             'languageTypeId': '639-2%3AENG%40ISO',
             'scriptTypeId': '15924%3ALATN%40ISO',
             'text': text
@@ -514,3 +514,119 @@ class GradeSystemCrUDTests(BaseGradingTestCase):
 
         url = self.bad_gradebook_url + '/' + str(grade_system.ident)
         self.assertRaises(AppError, self.app.get, url)
+
+    def test_can_update_gradesystem(self):
+        grade_system = self.setup_gradesystem("test")
+
+        self.num_gradesystems(1)
+
+        url = self.url + '/' + str(grade_system.ident)
+
+        test_cases = [('name', 'a new name'),
+                      ('description', 'foobar')]
+        for case in test_cases:
+            payload = {
+                case[0]: case[1]
+            }
+            req = self.app.put(url,
+                               params=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+            self.ok(req)
+            updated_grade_system = self.json(req)
+
+            if case[0] == 'name':
+                self.assertEqual(
+                    updated_grade_system['displayName']['text'],
+                    case[1]
+                )
+            else:
+                self.assertEqual(
+                    updated_grade_system['description']['text'],
+                    case[1]
+                )
+
+        self.num_gradesystems(1)
+
+    def test_can_update_gradesystem_with_dics(self):
+        grade_system = self.setup_gradesystem("test")
+
+        self.num_gradesystems(1)
+
+        url = self.url + '/' + str(grade_system.ident)
+
+        test_cases = [('displayName', self.display_text('a new name')),
+                      ('description', self.display_text('foobar'))]
+        for case in test_cases:
+            payload = {
+                case[0]: case[1]
+            }
+            req = self.app.put(url,
+                               params=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+            self.ok(req)
+            updated_grade_system = self.json(req)
+
+            if case[0] == 'displayName':
+                self.assertDisplayText(
+                    updated_grade_system['displayName'],
+                    case[1]
+                )
+            else:
+                self.assertDisplayText(
+                    updated_grade_system['description'],
+                    case[1]
+                )
+
+        self.num_gradesystems(1)
+
+    def test_update_with_invalid_id_throws_exception(self):
+        self.setup_gradesystem("Test")
+
+        self.num_gradesystems(1)
+
+        url = self.url + '/' + self.bad_gradesystem_id
+
+        test_cases = [('name', 'a new name'),
+                      ('description', 'foobar')]
+        for case in test_cases:
+            payload = {
+                case[0]: case[1]
+            }
+            self.assertRaises(AppError,
+                              self.app.put,
+                              url,
+                              params=json.dumps(payload),
+                              headers={'content-type': 'application/json'})
+
+        self.num_gradesystems(1)
+
+    def test_update_with_no_params_throws_exception(self):
+        grade_system = self.setup_gradesystem("Test")
+
+        self.num_gradesystems(1)
+
+        url = self.url + '/' + str(grade_system.ident)
+
+        test_cases = [('foo', 'bar'),
+                      ('bankId', 'foobar')]
+        for case in test_cases:
+            payload = {
+                case[0]: case[1]
+            }
+            self.assertRaises(AppError,
+                              self.app.put,
+                              url,
+                              params=json.dumps(payload),
+                              headers={'content-type': 'application/json'})
+
+        self.num_gradesystems(1)
+        req = self.app.get(url)
+        grade_system_fresh = self.json(req)
+
+        grade_system_map = grade_system.object_map
+        params_to_test = ['id', 'displayName', 'description']
+        for param in params_to_test:
+            self.assertEqual(
+                grade_system_map[param],
+                grade_system_fresh[param]
+            )

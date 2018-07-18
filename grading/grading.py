@@ -240,15 +240,16 @@ class GradebookGradeSystemDetails(utilities.BaseClass):
             gm = gutils.get_grading_manager()
             data = self.data()
             utilities.verify_at_least_one_key_present(data,
-                                                      ['name', 'description', 'basedOnGrades',
+                                                      ['name', 'displayName', 'description', 'basedOnGrades',
                                                        'grades', 'highestScore', 'lowestScore',
                                                        'scoreIncrement'])
             gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
             grade_system = gradebook.get_grade_system(utilities.clean_id(gradesystem_id))
+            form = gradebook.get_grade_system_form_for_update(grade_system.ident)
+            utilities.set_form_basics(form, data)
 
             if 'basedOnGrades' in data:
                 # do this first, so methods below work
-                form = gradebook.get_grade_system_form_for_update(grade_system.ident)
                 form.set_based_on_grades(bool(data['basedOnGrades']))
 
                 if data['basedOnGrades']:
@@ -278,8 +279,6 @@ class GradebookGradeSystemDetails(utilities.BaseClass):
             score_inputs = ['highestScore', 'lowestScore', 'scoreIncrement']
             if (not grade_system.is_based_on_grades() and
                     any(i in data for i in score_inputs)):
-                form = gradebook.get_grade_system_form_for_update(grade_system.ident)
-
                 if 'highestScore' in data:
                     form.set_highest_numeric_score(float(data['highestScore']))
 
@@ -291,9 +290,7 @@ class GradebookGradeSystemDetails(utilities.BaseClass):
 
                 gradebook.update_grade_system(form)
 
-            if 'name' in data or 'description' in data:
-                form = gradebook.get_grade_system_form_for_update(grade_system.ident)
-
+            if 'name' in data or 'displayName' or 'description' in data:
                 if 'name' in data:
                     form.display_name = data['name']
                 if 'description' in data:
