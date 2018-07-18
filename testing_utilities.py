@@ -288,6 +288,14 @@ def configure_dlkit():
                     {'value': 'TEST_AUTHZ_ADAPTER_1', 'priority': 1}
                 ]
             },
+            'gradingProviderImpl': {
+                'syntax': 'STRING',
+                'displayName': 'Grading Provider Implementation',
+                'description': 'Implementation for grading service provider',
+                'values': [
+                    {'value': 'TEST_AUTHZ_ADAPTER_1', 'priority': 1}
+                ]
+            },
         }
     }
 
@@ -412,7 +420,8 @@ def get_managers(username='student@tiss.edu'):
     managers = [('am', 'ASSESSMENT'),
                 ('authzm', 'AUTHORIZATION'),
                 ('logm', 'LOGGING'),
-                ('rm', 'REPOSITORY')]
+                ('rm', 'REPOSITORY'),
+                ('gm', 'GRADING')]
     results = {}
     for manager in managers:
         nickname = manager[0]
