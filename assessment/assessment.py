@@ -345,14 +345,13 @@ class AssessmentsList(utilities.BaseClass):
 
             form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_ASSESSMENT])
 
-
             form = utilities.set_form_basics(form, local_data_map)
 
             if 'levelId' in local_data_map:
-                form.level=utilities.clean_id(local_data_map['levelId'])
+                form.level = utilities.clean_id(local_data_map['levelId'])
 
             if 'rubricId' in local_data_map:
-                form.rubric=utilities.clean_id(local_data_map['rubricId'])
+                form.rubric = utilities.clean_id(local_data_map['rubricId'])
 
             new_assessment = bank.create_assessment(form)
             # if item IDs are included in the assessment, append them.
