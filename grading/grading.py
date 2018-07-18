@@ -246,7 +246,7 @@ class GradebookGradeSystemDetails(utilities.BaseClass):
             gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
             grade_system = gradebook.get_grade_system(utilities.clean_id(gradesystem_id))
             form = gradebook.get_grade_system_form_for_update(grade_system.ident)
-            utilities.set_form_basics(form, data)
+            form = utilities.set_form_basics(form, data)
 
             if 'basedOnGrades' in data:
                 # do this first, so methods below work
@@ -261,8 +261,6 @@ class GradebookGradeSystemDetails(utilities.BaseClass):
                     # clear out grades
                     for grade in grade_system.get_grades():
                         gradebook.delete_grade(grade.ident)
-
-                grade_system = gradebook.update_grade_system(form)
 
             if (grade_system.is_based_on_grades() and
                     'grades' in data):
@@ -288,15 +286,7 @@ class GradebookGradeSystemDetails(utilities.BaseClass):
                 if 'scoreIncrement' in data:
                     form.set_numeric_score_increment(float(data['scoreIncrement']))
 
-                gradebook.update_grade_system(form)
-
-            if 'name' in data or 'displayName' or 'description' in data:
-                if 'name' in data:
-                    form.display_name = data['name']
-                if 'description' in data:
-                    form.description = data['description']
-
-                gradebook.update_grade_system(form)
+            gradebook.update_grade_system(form)
 
             grade_system = utilities.convert_dl_object(gradebook.get_grade_system(grade_system.ident))
             return grade_system
