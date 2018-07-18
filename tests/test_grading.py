@@ -1,5 +1,7 @@
 import json
 
+from dlkit.runtime.primordium import Id
+
 from paste.fixture import AppError
 
 from testing_utilities import BaseTestCase, get_managers, create_new_gradebook
@@ -24,6 +26,19 @@ class BaseGradingTestCase(BaseTestCase):
         new_grade_system = gradebook.create_grade_system(form)
 
         return new_grade_system
+
+    def create_new_gradebook_column(self, gradebook, grade_system):
+        gm = get_managers()['gm']
+
+        gradebook = gm.get_gradebook(gradebook.ident)
+
+        form = gradebook.get_gradebook_column_form_for_create([])
+        form.set_display_name("for testing only")
+        form.set_grade_system(grade_system.ident)
+
+        new_column = gradebook.create_gradebook_column(form)
+
+        return new_column
 
     def display_text(self, text):
         return {
@@ -686,17 +701,7 @@ class GradebookColumnCRUDTests(BaseGradingTestCase):
         )
 
     def create_new_gradebook_column(self):
-        gm = get_managers()['gm']
-
-        gradebook = gm.get_gradebook(self.gradebook.ident)
-
-        form = gradebook.get_gradebook_column_form_for_create([])
-        form.set_display_name("for testing only")
-        form.set_grade_system(self.grade_system.ident)
-
-        new_column = gradebook.create_gradebook_column(form)
-
-        return new_column
+        return super(GradebookColumnCRUDTests, self).create_new_gradebook_column(self.gradebook, self.grade_system)
 
     def setUp(self):
         super(GradebookColumnCRUDTests, self).setUp()
@@ -1006,3 +1011,96 @@ class GradebookColumnCRUDTests(BaseGradingTestCase):
         self.assertRaises(AppError, self.app.delete, url)
 
         self.num_columns(1)
+
+
+class GradebookEntryCRUDTest(BaseGradingTestCase):
+    def num_entries(self, column_id, val):
+        gm = get_managers()['gm']
+
+        gradebook = gm.get_gradebook(self.gradebook.ident)
+        if column_id is None:
+            grading_entries = gradebook.get_grade_entries()
+        else:
+            grading_entries = gradebook.get_grade_entries_for_gradebook_column(column_id)
+
+        self.assertEqual(
+            grading_entries.available(),
+            val
+        )
+
+    def create_new_gradebook_entry(self, column):
+        gm = get_managers()['gm']
+
+        gradebook = gm.get_gradebook(self.gradebook.ident)
+
+        form = gradebook.get_grade_entry_form_for_create(column.ident,
+                                                         self.resource_id,
+                                                         [])
+
+        form.set_display_name("for testing only")
+
+        entry = gradebook.create_grade_entry(form)
+
+        return entry
+
+    def setUp(self):
+        super(GradebookEntryCRUDTest, self).setUp()
+        self.gradebook = create_new_gradebook()
+        self.grade_system = self.setup_gradesystem(self.gradebook, "Test")
+        self.gradebook_column = self.create_new_gradebook_column(self.gradebook, self.grade_system)
+        self.resource_id = Id('user:xaracil@UOC.EDU')
+
+        self.bad_gradebook_id = 'grading.Gradebook%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
+        self.bad_grade_system_id = 'grading.GradebookSystem%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
+        self.bad_gradebook_column_id = 'grading.GradebookColumn%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
+        self.bad_gradebook_url = self.url + '/gradebooks/{0}/entries'.format(str(self.bad_gradebook_id))
+        self.bad_gradebook_column_url = self.url + '/gradebooks/{0}/columns/{1}/entries'.format(str(self.gradebook.ident), str(self.bad_gradebook_column_id))
+        self.column_url = self.url + '/gradebooks/{0}/columns/{1}/entries'.format(str(self.gradebook.ident), str(self.gradebook_column.ident))
+        self.url += '/gradebooks/{0}/entries'.format(str(self.gradebook.ident))
+        self.num_entries(None, 0)
+
+    def tearDown(self):
+        super(GradebookEntryCRUDTest, self).tearDown()
+
+    def get_entries_and_assert(self, url):
+        req = self.app.get(url)
+        self.ok(req)
+        entries_list = self.json(req)
+        self.assertEqual(len(entries_list), 0)
+
+        gradebook_entry = self.create_new_gradebook_entry(self.gradebook_column)
+        self.num_entries(None, 1)
+        self.num_entries(self.gradebook_column.ident, 1)
+        req = self.app.get(url)
+        self.ok(req)
+        entries_list = self.json(req)
+        self.assertEqual(len(entries_list), 1)
+        for attr, val in gradebook_entry.object_map.iteritems():
+            if attr == 'startDate' or attr == 'endDate':
+                self.assertEqual(
+                    val.isoformat(),
+                    entries_list[0][attr]
+                )
+            else:
+                self.assertEqual(
+                    val,
+                    entries_list[0][attr]
+                )
+
+    def test_can_list_grade_entries(self):
+        self.get_entries_and_assert(self.url)
+
+    def test_can_list_grade_entries_with_column_in_request(self):
+        self.get_entries_and_assert(self.column_url)
+
+    def test_trying_to_get_entries_with_invalid_gradebook_id_throws_exception(self):
+        self.assertRaises(AppError, self.app.get, self.bad_gradebook_url)
+
+        self.num_entries(None, 0)
+
+    def test_trying_to_get_entries_with_invalid_gradebookcolumn(self):
+        req = self.app.get(self.bad_gradebook_column_url)
+        self.ok(req)
+        entries_list = self.json(req)
+        self.assertEqual(len(entries_list), 0)
+        self.num_entries(None, 0)
