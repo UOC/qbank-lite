@@ -1480,3 +1480,39 @@ class GradebookEntryCRUDTest(BaseGradingTestCase):
                 entry_map[param],
                 entry_fresh[param]
             )
+
+    def test_can_delete_entry(self):
+        entry = self.create_new_graded_entry()
+        self.num_entries(None, 1)
+        self.num_entries(self.graded_based_gradebook_column.ident, 1)
+
+        url = self.url + '/' + str(entry.ident)
+        req = self.app.delete(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
+
+        self.num_entries(None, 0)
+        self.num_entries(self.graded_based_gradebook_column.ident, 0)
+
+    def test_trying_to_delete_entry_with_invalid_id_throws_exception(self):
+        self.create_new_graded_entry()
+        self.num_entries(None, 1)
+        self.num_entries(self.graded_based_gradebook_column.ident, 1)
+
+        url = self.url + '/' + self.bad_entry_id
+        self.assertRaises(AppError, self.app.delete, url)
+
+        self.num_entries(None, 1)
+        self.num_entries(self.graded_based_gradebook_column.ident, 1)
+
+    def test_trying_to_delete_entry_with_invalid_gradebook_id_throws_exception(self):
+        entry = self.create_new_graded_entry()
+        self.num_entries(None, 1)
+        self.num_entries(self.graded_based_gradebook_column.ident, 1)
+
+        url = self.bad_gradebook_url + '/' + str(entry.ident)
+        self.assertRaises(AppError, self.app.delete, url)
+
+        self.num_entries(None, 1)
+        self.num_entries(self.graded_based_gradebook_column.ident, 1)
