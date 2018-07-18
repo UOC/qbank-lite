@@ -53,17 +53,22 @@ class GradebookCrUDTests(BaseGradingTestCase):
     def tearDown(self):
         super(GradebookCrUDTests, self).tearDown()
 
+    def create_gradebook(self, payload):
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        gradebook = self.json(req)
+        self.num_gradebooks(1)
+        return gradebook
+
     def test_can_create_gradebooks_name_as_string(self):
         payload = {
             'name': 'my new log',
             'description': 'for testing with',
             'genusTypeId': 'gradebook-genus-type%3Adefault-gradebook%40ODL.MIT.EDU'
         }
-        req = self.app.post(self.url,
-                            params=json.dumps(payload),
-                            headers={'content-type': 'application/json'})
-        self.ok(req)
-        gradebook = self.json(req)
+        gradebook = self.create_gradebook(payload)
         self.assertEqual(
             gradebook['displayName']['text'],
             payload['name']
@@ -72,7 +77,6 @@ class GradebookCrUDTests(BaseGradingTestCase):
             gradebook['description']['text'],
             payload['description']
         )
-        self.num_gradebooks(1)
 
     def test_can_create_gradebooks_name_as_dict(self):
         payload = {
@@ -90,11 +94,7 @@ class GradebookCrUDTests(BaseGradingTestCase):
             },
             'genusTypeId': 'gradebook-genus-type%3Adefault-gradebook%40ODL.MIT.EDU'
         }
-        req = self.app.post(self.url,
-                            params=json.dumps(payload),
-                            headers={'content-type': 'application/json'})
-        self.ok(req)
-        gradebook = self.json(req)
+        gradebook = self.create_gradebook(payload)
         self.assertDisplayText(
             gradebook['displayName'],
             payload['displayName']
@@ -103,7 +103,6 @@ class GradebookCrUDTests(BaseGradingTestCase):
             gradebook['description'],
             payload['description']
         )
-        self.num_gradebooks(1)
 
     def test_can_list_gradebooks(self):
         req = self.app.get(self.url,
