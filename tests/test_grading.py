@@ -313,6 +313,7 @@ class GradeSystemCrUDTests(BaseGradingTestCase):
         self.bad_gradebook_id = 'grading.Gradebook%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
         self.bad_gradesystem_id = 'grading.GradeSystem%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
         self.bad_gradebook_url = self.url + '/gradebooks/{0}/gradesystems'.format(str(self.bad_gradebook_id))
+        self.gradebook_url = self.url + '/gradebooks/{0}'.format(str(self.gradebook.ident))
         self.url += '/gradebooks/{0}/gradesystems'.format(str(self.gradebook.ident))
         self.num_gradesystems(0)
 
@@ -630,3 +631,45 @@ class GradeSystemCrUDTests(BaseGradingTestCase):
                 grade_system_map[param],
                 grade_system_fresh[param]
             )
+
+    def test_can_delete_gradesystem(self):
+        grade_system = self.setup_gradesystem("Test")
+
+        self.num_gradesystems(1)
+
+        url = self.url + '/' + str(grade_system.ident)
+        req = self.app.delete(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
+
+        self.num_gradesystems(0)
+
+    def test_trying_to_delete_gradesystem_with_invalid_id_throws_exception(self):
+        self.setup_gradesystem("Test")
+
+        self.num_gradesystems(1)
+
+        url = self.url + '/' + self.bad_gradesystem_id
+        self.assertRaises(AppError, self.app.delete, url)
+
+        self.num_gradesystems(1)
+
+    def test_trying_to_delete_gradesystem_with_invalid_gradebook_id_throws_exception(self):
+        grade_system = self.setup_gradesystem("Test")
+
+        self.num_gradesystems(1)
+
+        url = self.bad_gradebook_url + '/' + str(grade_system.ident)
+        self.assertRaises(AppError, self.app.delete, url)
+
+        self.num_gradesystems(1)
+
+    def test_trying_to_delete_gradebook_with_gradesystems_id_throws_exception(self):
+        self.setup_gradesystem("Test")
+
+        self.num_gradesystems(1)
+
+        self.assertRaises(AppError, self.app.delete, self.gradebook_url)
+
+        self.num_gradesystems(1)
