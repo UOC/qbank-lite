@@ -677,15 +677,6 @@ class GradeSystemCRUDTests(BaseGradingTestCase):
 
         self.num_gradesystems(1)
 
-    def test_trying_to_delete_gradebook_with_gradesystems_id_throws_exception(self):
-        self.setup_gradesystem("Test")
-
-        self.num_gradesystems(1)
-
-        self.assertRaises(AppError, self.app.delete, self.gradebook_url)
-
-        self.num_gradesystems(1)
-
 
 class GradebookColumnCRUDTests(BaseGradingTestCase):
     def num_columns(self, val):
@@ -741,3 +732,8 @@ class GradebookColumnCRUDTests(BaseGradingTestCase):
                 val,
                 gradebook_column_list[0][attr]
             )
+
+    def test_trying_to_get_gradecolumns_with_invalid_gradebook_id_throws_exception(self):
+        self.assertRaises(AppError, self.app.get, self.bad_gradebook_url)
+
+        self.num_columns(0)
