@@ -673,3 +673,12 @@ class GradeSystemCrUDTests(BaseGradingTestCase):
         self.assertRaises(AppError, self.app.delete, self.gradebook_url)
 
         self.num_gradesystems(1)
+
+    def test_trying_to_delete_gradebook_with_gradesystems_id_throws_exception(self):
+        self.setup_gradesystem("Test")
+
+        self.num_gradesystems(1)
+
+        self.assertRaises(AppError, self.app.delete, self.gradebook_url)
+
+        self.num_gradesystems(1)
