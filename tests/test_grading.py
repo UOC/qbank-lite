@@ -6,6 +6,8 @@ from paste.fixture import AppError
 
 from testing_utilities import BaseTestCase, get_managers, create_new_gradebook
 
+OUTPUT_SCORE = 50.0
+
 
 class BaseGradingTestCase(BaseTestCase):
     def setUp(self):
@@ -45,6 +47,7 @@ class BaseGradingTestCase(BaseTestCase):
 
         form.set_display_name("for testing only")
         form.ignored_for_calculations = ignored
+
         if grade is not None:
             form.grade = grade.ident
 
@@ -55,9 +58,9 @@ class BaseGradingTestCase(BaseTestCase):
     def create_new_grade(self, gradebook, graded_based_grade_system):
         # add grades
         form = gradebook.get_grade_form_for_create(graded_based_grade_system.ident, [])
-        form.inputScoreStartRange = 0.0
-        form.inputScoreEndRange = 100.0
-        form.outputScore = 50.0
+        form.input_score_start_range = 0.0
+        form.input_score_end_range = 100.0
+        form.output_score = OUTPUT_SCORE
 
         grade = gradebook.create_grade(form)
         return grade
@@ -1501,3 +1504,80 @@ class GradebookEntryCRUDTest(BaseGradingTestCase):
 
         self.num_entries(None, 1)
         self.num_entries(self.graded_based_gradebook_column.ident, 1)
+
+
+class GradebookColumnSummaryTest(BaseGradingTestCase):
+    def setUp(self):
+        super(GradebookColumnSummaryTest, self).setUp()
+        self.gradebook = create_new_gradebook()
+        self.grade_system = self.create_new_gradesystem(self.gradebook, "Test")
+        self.gradebook_column = self.create_new_gradebook_column(self.gradebook, self.grade_system)
+
+        self.graded_based_grade_system = self.create_new_gradesystem(self.gradebook, "Test", True)
+        self.grade = self.create_new_grade(self.gradebook, self.graded_based_grade_system)
+        self.graded_based_gradebook_column = self.create_new_gradebook_column(self.gradebook,
+                                                                              self.graded_based_grade_system)
+
+        self.resources_id = [Id('user:xaracil@UOC.EDU'), Id('user:another@UOC.EDU')]
+
+        self.bad_gradebook_id = 'grading.Gradebook%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
+        self.bad_gradebook_column_id = 'grading.GradebookColumn%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
+
+        self.bad_gradebook_and_gradebook_column_url = self.url + '/gradebooks/{0}/columns/{1}/summary'.format(str(self.bad_gradebook_id), str(self.bad_gradebook_column_id))
+        self.bad_gradebook_column_url = self.url + '/gradebooks/{0}/columns/{1}/summary'.format(str(self.gradebook.ident), str(self.bad_gradebook_column_id))
+        self.bad_gradebook_url = self.url + '/gradebooks/{0}/columns/{1}/summary'.format(str(self.bad_gradebook_id), str(self.graded_based_gradebook_column.ident))
+
+        self.graded_based_column_url = self.url + '/gradebooks/{0}/columns/{1}/summary'.format(str(self.gradebook.ident), str(self.graded_based_gradebook_column.ident))
+        self.url += '/gradebooks/{0}/columns/{1}/summary'.format(str(self.gradebook.ident), str(self.gradebook_column.ident))
+
+    def tearDown(self):
+        super(GradebookColumnSummaryTest, self).tearDown()
+
+    def test_can_get_summary(self):
+        req = self.app.get(self.url)
+        self.ok(req)
+        summary = self.json(req)
+        self.assertIsNotNone(summary)
+
+    def test_trying_to_get_entries_with_invalid_gradebook_id_throws_exception(self):
+        self.assertRaises(AppError, self.app.get, self.bad_gradebook_url)
+
+    def test_trying_to_get_entries_with_invalid_gradebookcolumn_throws_exception(self):
+        req = self.app.get(self.bad_gradebook_column_url)
+        self.ok(req)
+        summary = self.json(req)
+        for attr, val in summary.iteritems():
+            self.assertEqual(
+                val,
+                0.0
+            )
+
+    def test_get_summary_has_values(self):
+        self.create_new_entry(self.gradebook,
+                              self.graded_based_gradebook_column,
+                              self.resources_id[0],
+                              grade=self.grade)
+        self.create_new_entry(self.gradebook,
+                              self.graded_based_gradebook_column,
+                              self.resources_id[1],
+                              grade=self.grade)
+        req = self.app.get(self.url)
+        self.ok(req)
+        summary = self.json(req)
+        self.assertIsNotNone(summary)
+
+        for attr, val in summary.iteritems():
+            self.assertEqual(
+                val,
+                0.0
+            )
+        req = self.app.get(self.graded_based_column_url)
+        self.ok(req)
+        summary = self.json(req)
+        self.assertIsNotNone(summary)
+        self.assertEqual(OUTPUT_SCORE * 2, summary['sum'])
+        self.assertEqual(OUTPUT_SCORE, summary['median'])
+        self.assertEqual(OUTPUT_SCORE, summary['mean'])
+        self.assertEqual(OUTPUT_SCORE, summary['rootMeanSquared'])
+        self.assertEqual(OUTPUT_SCORE, summary['mode'])
+        self.assertEqual(0.0, summary['standardDeviation'])
