@@ -370,6 +370,7 @@ def verify_min_length(my_dict, list_of_keys, expected_len):
             if len(my_dict[key]) < int(expected_len):
                 raise TypeError('"' + key + '" is shorter than ' + str(expected_len) + '.')
 
+
 def json_serial(obj):
     """JSON serializer for objects not serializable by default json code"""
 

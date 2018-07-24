@@ -1878,6 +1878,7 @@ class AssessmentTakenList(utilities.BaseClass):
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
+
 class FinishAssessmentTaken(utilities.BaseClass):
     """
     "finish" the assessment to indicate that student has ended his/her attempt
