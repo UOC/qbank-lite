@@ -194,8 +194,8 @@ class GradebookGradeSystemList(utilities.BaseClass):
             if not check_scores:
                 gutils.check_grade_inputs(data)
                 gutils.add_grades_to_grade_system(gradebook,
-                                                   grade_system,
-                                                   data)
+                                                  grade_system,
+                                                  data)
 
             new_grade_system = utilities.convert_dl_object(gradebook.get_grade_system(grade_system.ident))
 
@@ -385,7 +385,7 @@ class GradebookColumnDetails(utilities.BaseClass):
             gm = gutils.get_grading_manager()
             data = self.data()
             utilities.verify_at_least_one_key_present(data,
-                                                   ['name', 'displayName', 'description', 'gradeSystemId'])
+                                                      ['name', 'displayName', 'description', 'gradeSystemId'])
 
             gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
             gradebook_column = gradebook.get_gradebook_column(utilities.clean_id(column_id))
@@ -453,7 +453,7 @@ class GradeEntriesList(utilities.BaseClass):
 
             data = self.data()
             utilities.verify_at_least_one_key_present(data,
-                                                   ['grade', 'score', 'ignoredForCalculations'])
+                                                      ['grade', 'score', 'ignoredForCalculations'])
             utilities.verify_keys_present(data, ['resourceId'])
             if column_id is None:
                 utilities.verify_keys_present(data, ['columnId'])
@@ -463,7 +463,7 @@ class GradeEntriesList(utilities.BaseClass):
             column = gradebook.get_gradebook_column(utilities.clean_id(column_id))
 
             gutils.validate_score_and_grades_against_system(column.get_grade_system(),
-                                                             data)
+                                                            data)
             form = gradebook.get_grade_entry_form_for_create(column.ident,
                                                              utilities.clean_id(data['resourceId']),
                                                              [])
@@ -482,6 +482,7 @@ class GradeEntriesList(utilities.BaseClass):
             return entry
         except Exception as ex:
             utilities.handle_exceptions(ex)
+
 
 class GradeEntryDetails(utilities.BaseClass):
     """
@@ -516,8 +517,8 @@ class GradeEntryDetails(utilities.BaseClass):
             gm = gutils.get_grading_manager()
             data = self.data()
             utilities.verify_at_least_one_key_present(data,
-                                                   ['name', 'displayName', 'description', 'grade',
-                                                    'score', 'ignoredForCalculations'])
+                                                      ['name', 'displayName', 'description', 'grade',
+                                                       'score', 'ignoredForCalculations'])
 
             gradebook = gm.get_gradebook(utilities.clean_id(gradebook_id))
             entry = gradebook.get_grade_entry(utilities.clean_id(entry_id))

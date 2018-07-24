@@ -402,6 +402,7 @@ def create_new_gradebook():
 
     return new_gradebook
 
+
 def get_fixture_bank():
     # from authorization_utilities import get_vault
     am = get_managers()['am']

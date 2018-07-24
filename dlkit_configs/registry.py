@@ -37,7 +37,7 @@ MANAGER_PATHS = {
         'CATALOGING': ('dlkit.authz_adapter.cataloging.managers.CatalogingManager',
                        'dlkit.authz_adapter.cataloging.managers.CatalogingProxyManager'),
         'GRADING': ('dlkit.authz_adapter.grading.managers.GradingManager',
-                       'dlkit.authz_adapter.grading.managers.GradingProxyManager'),
+                    'dlkit.authz_adapter.grading.managers.GradingProxyManager'),
     },
     # 'filesystem': {
     #     'ASSESSMENT': ('dlkit.filesystem.assessment.managers.AssessmentManager',
@@ -84,8 +84,8 @@ MANAGER_PATHS = {
                        'dlkit.json_.repository.managers.RepositoryProxyManager'),
         'RESOURCE': ('dlkit.json_.resource.managers.ResourceManager',
                      'dlkit.json_.resource.managers.ResourceProxyManager'),
-        'GRADING':  ('dlkit.json_.grading.managers.GradingManager',
-                     'dlkit.json_.grading.managers.GradingProxyManager')
+        'GRADING': ('dlkit.json_.grading.managers.GradingManager',
+                    'dlkit.json_.grading.managers.GradingProxyManager')
     },
     'filesystem_adapter': {
         'REPOSITORY': ('dlkit.filesystem_adapter.repository.managers.RepositoryManager',

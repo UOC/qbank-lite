@@ -57,6 +57,7 @@ def validate_score_and_grades_against_system(grade_system, data):
 def validate_grade_system_exists(gradebook, grade_system_id):
     gradebook.get_grade_system(grade_system_id)
 
+
 def get_grading_manager():
     condition = PROXY_SESSION.get_proxy_condition()
     dummy_request = SimpleRequest(username=web.ctx.env.get('HTTP_X_API_PROXY', 'student@tiss.edu'),
@@ -87,4 +88,3 @@ def get_grading_manager():
     proxy = PROXY_SESSION.get_proxy(condition)
     return RUNTIME.get_service_manager('GRADING',
                                        proxy=proxy)
-
