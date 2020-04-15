@@ -296,6 +296,14 @@ def configure_dlkit():
                     {'value': 'TEST_AUTHZ_ADAPTER_1', 'priority': 1}
                 ]
             },
+            'commentingProviderImpl': {
+                'syntax': 'STRING',
+                'displayName': 'Commenting Provider Implementation',
+                'description': 'Implementation for commenting service provider',
+                'values': [
+                    {'value': 'TEST_AUTHZ_ADAPTER_1', 'priority': 1}
+                ]
+            },
         }
     }
 
@@ -403,6 +411,16 @@ def create_new_gradebook():
     return new_gradebook
 
 
+def create_new_book():
+    cm = get_managers()['cm']
+    form = cm.get_book_form_for_create([])
+    form.display_name = 'a boook'
+    form.description = 'for testing with'
+    new_book = cm.create_book(form)
+
+    return new_book
+
+
 def get_fixture_bank():
     # from authorization_utilities import get_vault
     am = get_managers()['am']
@@ -431,7 +449,8 @@ def get_managers(username='student@tiss.edu'):
                 ('authzm', 'AUTHORIZATION'),
                 ('logm', 'LOGGING'),
                 ('rm', 'REPOSITORY'),
-                ('gm', 'GRADING')]
+                ('gm', 'GRADING'),
+                ('cm', 'COMMENTING')]
     results = {}
     for manager in managers:
         nickname = manager[0]
