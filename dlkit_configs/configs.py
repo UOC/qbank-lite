@@ -296,7 +296,15 @@ JSON_1 = {
             'displayName': 'Use the filesystem instead of MongoDB',
             'description': 'Use the filesystem instead of MongoDB',
             'values': [
-                {'value': True, 'priority': 1}
+                {'value': False, 'priority': 1}
+            ]
+        },
+        'mongoHostURI': {
+            'syntax': 'STRING',
+            'displayName': 'Mongo Host URI',
+            'description': 'Mongo Host URI when useFilesystem is False',
+            'values': [
+                {'value': 'mongodb://localhost:27017', 'priority': 1}
             ]
         },
         'bypassAuthorizationForFilesRecordAssetContentLookup': {
