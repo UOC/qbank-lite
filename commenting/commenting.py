@@ -5,6 +5,7 @@ import utilities
 import commenting_utilities as cutils
 
 urls = (
+    "/books/(.*)/comments/(.*)/?", "CommentsDetails",
     "/books/(.*)/comments/?", "CommentsList",
     "/books/(.*)/?", "BookDetails",
     "/books/?", "BookList"
@@ -157,12 +158,73 @@ class CommentsList(utilities.BaseClass):
 
             form = book.get_comment_form_for_create(utilities.clean_id(data['referenceId']), [])
             form = utilities.set_form_basics(form, data)
-            form.text = utilities.create_display_text(data['text'])
+            form.set_text(utilities.create_display_text(data['text']))
 
             column = utilities.convert_dl_object(book.create_comment(form))
 
             return column
         except Exception as ex:
             utilities.handle_exceptions(ex)
+
+class CommentsDetails(utilities.BaseClass):
+    """
+    Get comments details
+    api/v1/commenting/books/<book_id>/comments/<comment_id>/
+
+    GET, PUT, DELETE
+    PUT to modify an existing comment (text.).
+        Include only the changed parameters.
+    DELETE to remove the comment.
+
+    Note that for RESTful calls, you need to set the request header
+    'content-type' to 'application/json'
+
+    Example (note the use of double quotes!!):
+       {"text" : "something"}
+    """
+    @utilities.format_response
+    def GET(self, book_id, comment_id):
+        try:
+            cm = cutils.get_commenting_manager()
+            book = cm.get_book(utilities.clean_id(book_id))
+            commenting_comment = book.get_comment(utilities.clean_id(comment_id))
+            comment = utilities.convert_dl_object(commenting_comment)
+            return comment
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
+    @utilities.format_response
+    def PUT(self, book_id, comment_id):
+        try:
+            cm = cutils.get_commenting_manager()
+            data = self.data()
+            utilities.verify_at_least_one_key_present(data,
+                                                      ['name', 'displayName', 'description', 'text'])
+
+            book = cm.get_book(utilities.clean_id(book_id))
+            commenting_comment = book.get_comment(utilities.clean_id(comment_id))
+
+            form = book.get_comment_form_for_update(commenting_comment.ident)
+            form = utilities.set_form_basics(form, data)
+            if 'text' in data:
+                form.set_text(utilities.create_display_text(data['text']))
+
+            book.update_comment(form)
+
+            comment = utilities.convert_dl_object(book.get_comment(commenting_comment.ident))
+            return comment
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
+    @utilities.format_response
+    def DELETE(self, book_id, comment_id):
+        try:
+            cm = cutils.get_commenting_manager()
+            book = cm.get_book(utilities.clean_id(book_id))
+            data = book.delete_comment(utilities.clean_id(comment_id))
+            return utilities.success()
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
 
 app_commenting = web.application(urls, locals())

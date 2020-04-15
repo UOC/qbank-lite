@@ -22,6 +22,7 @@ class BaseCommentingTestCase(BaseTestCase):
 
         form = book.get_comment_form_for_create(reference_id, [])
         form.set_display_name("for testing only")
+        form.set_text("text for testing only")
 
         new_comment = book.create_comment(form)
 
@@ -311,6 +312,7 @@ class CommentCRUDTests(BaseCommentingTestCase):
         self.book = create_new_book()
         self.reference = Id('reference.id%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU')
         self.bad_book_id = 'commenting.Book%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
+        self.bad_comment_id = 'commenting.Comment%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
         self.bad_book_url = self.url + '/books/{0}/comments'.format(str(self.bad_book_id))
         self.url += '/books/{0}/comments'.format(str(self.book.ident))
         self.num_comments(0)
@@ -444,3 +446,195 @@ class CommentCRUDTests(BaseCommentingTestCase):
                 payload[key]
             )
 
+    def test_can_get_comment_details(self):
+        comment = self.create_new_comment()
+
+        self.num_comments(1)
+
+        url = self.url + '/' + str(comment.ident)
+
+        req = self.app.get(url)
+        self.ok(req)
+        comment_details = self.json(req)
+
+        for attr, val in comment.object_map.iteritems():
+            if attr == 'startDate' or attr == 'endDate':
+                self.assertEqual(
+                    val.isoformat(),
+                    comment_details[attr]
+                )
+            else:
+                self.assertEqual(
+                    val,
+                    comment_details[attr]
+                )
+
+    def test_invalid_comment_id_throws_exception(self):
+        self.create_new_comment()
+        self.num_comments(1)
+
+        url = self.url + '/x'
+        self.assertRaises(AppError, self.app.get, url)
+
+    def test_bad_book_id_throws_exception(self):
+        comment = self.create_new_comment()
+        self.num_comments(1)
+
+        url = self.bad_book_url + '/' + str(comment.ident)
+        self.assertRaises(AppError, self.app.get, url)
+
+    def test_can_update_comment(self):
+        comment = self.create_new_comment()
+        self.num_comments(1)
+
+        url = self.url + '/' + str(comment.ident)
+
+        test_cases = [('name', 'a new name'),
+                      ('description', 'foobar'),
+                      ('text', 'some text')]
+        for case in test_cases:
+            payload = {
+                case[0]: case[1]
+            }
+            req = self.app.put(url,
+                               params=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+            self.ok(req)
+            updated_comment = self.json(req)
+
+            if case[0] == 'name':
+                self.assertEqual(
+                    updated_comment['displayName']['text'],
+                    case[1]
+                )
+            elif case[0] == 'description':
+                self.assertEqual(
+                    updated_comment['description']['text'],
+                    case[1]
+                )
+            else:
+                self.assertEqual(
+                    updated_comment['text']['text'],
+                    case[1]
+                )
+
+        self.num_comments(1)
+
+    def test_can_update_comment_with_dics(self):
+        comment = self.create_new_comment()
+        self.num_comments(1)
+
+        url = self.url + '/' + str(comment.ident)
+
+        test_cases = [('displayName', self.display_text('a new name')),
+                      ('description', self.display_text('foobar')),
+                      ('text', self.display_text('some text'))]
+        for case in test_cases:
+            payload = {
+                case[0]: case[1]
+            }
+            req = self.app.put(url,
+                               params=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+            self.ok(req)
+            updated_comment = self.json(req)
+
+            if case[0] == 'displayName':
+                self.assertDisplayText(
+                    updated_comment['displayName'],
+                    case[1]
+                )
+            elif case[0] == 'description':
+                self.assertDisplayText(
+                    updated_comment['description'],
+                    case[1]
+                )
+            else:
+                self.assertDisplayText(
+                    updated_comment['text'],
+                    case[1]
+                )
+
+        self.num_comments(1)
+
+    def test_update_with_invalid_id_throws_exception(self):
+        self.create_new_comment()
+
+        self.num_comments(1)
+
+        url = self.url + '/' + self.bad_comment_id
+
+        test_cases = [('name', 'a new name'),
+                      ('description', 'foobar'),
+                      ('text', 'some text')]
+        for case in test_cases:
+            payload = {
+                case[0]: case[1]
+            }
+            self.assertRaises(AppError,
+                              self.app.put,
+                              url,
+                              params=json.dumps(payload),
+                              headers={'content-type': 'application/json'})
+
+        self.num_comments(1)
+
+    def test_update_with_no_params_throws_exception(self):
+        comment = self.create_new_comment()
+        self.num_comments(1)
+
+        url = self.url + '/' + str(comment.ident)
+
+        test_cases = [('foo', 'bar'),
+                      ('bankId', 'foobar')]
+        for case in test_cases:
+            payload = {
+                case[0]: case[1]
+            }
+            self.assertRaises(AppError,
+                              self.app.put,
+                              url,
+                              params=json.dumps(payload),
+                              headers={'content-type': 'application/json'})
+
+        self.num_comments(1)
+        req = self.app.get(url)
+        comment_fresh = self.json(req)
+
+        comment_map = comment.object_map
+        params_to_test = ['id', 'displayName', 'description', 'text']
+        for param in params_to_test:
+            self.assertEqual(
+                comment_map[param],
+                comment_fresh[param]
+            )
+
+    def test_can_delete_comment(self):
+        comment = self.create_new_comment()
+        self.num_comments(1)
+
+        url = self.url + '/' + str(comment.ident)
+        req = self.app.delete(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
+
+        self.num_comments(0)
+
+    def test_trying_to_delete_comment_with_invalid_id_throws_exception(self):
+        self.create_new_comment()
+        self.num_comments(1)
+
+        url = self.url + '/' + self.bad_comment_id
+        self.assertRaises(AppError, self.app.delete, url)
+
+        self.num_comments(1)
+
+    def test_trying_to_delete_comment_with_invalid_book_id_throws_exception(self):
+        comment = self.create_new_comment()
+        self.num_comments(1)
+
+        url = self.bad_book_url + '/' + str(comment.ident)
+        self.assertRaises(AppError, self.app.delete, url)
+
+        self.num_comments(1)
