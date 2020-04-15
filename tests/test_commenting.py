@@ -15,6 +15,18 @@ class BaseCommentingTestCase(BaseTestCase):
     def tearDown(self):
         super(BaseCommentingTestCase, self).tearDown()
 
+    def create_new_comment(self, book, reference_id):
+        cm = get_managers()['cm']
+
+        book = cm.get_book(book.ident)
+
+        form = book.get_comment_form_for_create(reference_id, [])
+        form.set_display_name("for testing only")
+
+        new_comment = book.create_comment(form)
+
+        return new_comment
+
     def display_text(self, text):
         return {
             'formatTypeId': 'TextFormats%3APLAIN%40okapia.net',
@@ -280,4 +292,155 @@ class BookCRUDTests(BaseCommentingTestCase):
 
         self.num_books(1)
 
+
+class CommentCRUDTests(BaseCommentingTestCase):
+    def num_comments(self, val):
+        cm = get_managers()['cm']
+
+        book = cm.get_book(self.book.ident)
+        self.assertEqual(
+            book.get_comments().available(),
+            val
+        )
+
+    def create_new_comment(self):
+        return super(CommentCRUDTests, self).create_new_comment(self.book, self.reference)
+
+    def setUp(self):
+        super(CommentCRUDTests, self).setUp()
+        self.book = create_new_book()
+        self.reference = Id('reference.id%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU')
+        self.bad_book_id = 'commenting.Book%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
+        self.bad_book_url = self.url + '/books/{0}/comments'.format(str(self.bad_book_id))
+        self.url += '/books/{0}/comments'.format(str(self.book.ident))
+        self.num_comments(0)
+
+    def tearDown(self):
+        super(CommentCRUDTests, self).tearDown()
+
+    def test_can_list_book_comments(self):
+        req = self.app.get(self.url)
+        self.ok(req)
+        comments_list = self.json(req)
+        self.assertEqual(len(comments_list), 0)
+
+        comment = self.create_new_comment()
+        self.num_comments(1)
+        req = self.app.get(self.url)
+        self.ok(req)
+        comments_list = self.json(req)
+        self.assertEqual(len(comments_list), 1)
+        for attr, val in comment.object_map.iteritems():
+            if attr == 'startDate' or attr == 'endDate':
+                self.assertEqual(
+                    val.isoformat(),
+                    comments_list[0][attr]
+                )
+            else:
+                self.assertEqual(
+                    val,
+                    comments_list[0][attr]
+                )
+
+    def test_trying_to_get_comments_with_invalid_book_id_throws_exception(self):
+        self.assertRaises(AppError, self.app.get, self.bad_book_url)
+
+        self.num_comments(0)
+
+    def test_trying_to_create_comment_with_invalid_book_id_throws_exception(self):
+        payload = {
+            'name': 'my new comment',
+            'description': 'for testing with',
+            'genusTypeId': 'comment-genus-type%3Adefault-comment%40ODL.MIT.EDU',
+
+        }
+        self.assertRaises(AppError,
+                          self.app.post,
+                          self.bad_book_url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
+
+        self.num_comments(0)
+
+    def test_trying_to_create_comment_without_reference_throws_exception(self):
+        payload = {
+            'name': 'my new comment',
+            'text': 'something',
+            'description': 'for testing with',
+            'genusTypeId': 'comment-genus-type%3Adefault-comment%40ODL.MIT.EDU',
+
+        }
+        self.assertRaises(AppError,
+                          self.app.post,
+                          self.url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
+
+        self.num_comments(0)
+
+    def test_trying_to_create_comment_without_text_throws_exception(self):
+        payload = {
+            'name': 'my new comment',
+            'description': 'for testing with',
+            'genusTypeId': 'comment-genus-type%3Adefault-comment%40ODL.MIT.EDU',
+            'referenceId': str(self.reference.identifier)
+        }
+        self.assertRaises(AppError,
+                          self.app.post,
+                          self.url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
+
+        self.num_comments(0)
+
+    def create_comment(self, payload):
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        comment = self.json(req)
+        self.num_comments(1)
+        for key in ['referenceId', 'genusTypeId']:
+            self.assertEqual(
+                comment[key],
+                payload[key]
+            )
+        return comment
+
+    def test_can_create_comment_name_as_string(self):
+        payload = {
+            'name': 'my new comment',
+            'description': 'for testing with',
+            'genusTypeId': 'comment-genus-type%3Adefault-comment%40ODL.MIT.EDU',
+            'text': 'some text',
+            'referenceId': str(self.reference.identifier)
+        }
+        comment = self.create_comment(payload)
+        self.assertEqual(
+            comment['displayName']['text'],
+            payload['name']
+        )
+        self.assertEqual(
+            comment['description']['text'],
+            payload['description']
+        )
+        self.assertEqual(
+            comment['text']['text'],
+            payload['text']
+        )
+
+    def test_can_create_comment_name_as_dict(self):
+        payload = {
+            'displayName': self.display_text('my new comment'),
+            'description': self.display_text('for testing with'),
+            'genusTypeId': 'comment-genus-type%3Adefault-comment%40ODL.MIT.EDU',
+            'text': self.display_text('some text'),
+            'referenceId': str(self.reference.identifier)
+        }
+        comment = self.create_comment(payload)
+        for key in ['displayName', 'description', 'text']:
+            self.assertDisplayText(
+                comment[key],
+                payload[key]
+            )
 

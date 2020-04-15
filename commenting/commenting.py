@@ -5,6 +5,7 @@ import utilities
 import commenting_utilities as cutils
 
 urls = (
+    "/books/(.*)/comments/?", "CommentsList",
     "/books/(.*)/?", "BookDetails",
     "/books/?", "BookList"
 )
@@ -117,5 +118,51 @@ class BookDetails(utilities.BaseClass):
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
+
+class CommentsList(utilities.BaseClass):
+    """
+    Get or add comments to a book
+    api/v1/commeting/books/<book_id>/comments/
+
+    GET, POST
+    GET to view current comments.
+    POST to create a new comment
+
+    Note that for RESTful calls, you need to set the request header
+    'content-type' to 'application/json'
+
+    Example (note the use of double quotes!!):
+       {"gradeSystemId" : "grading.GradeSystem%3A123%40MIT-ODL"}
+    """
+    @utilities.format_response
+    def GET(self, book_id):
+        try:
+            cm = cutils.get_commenting_manager()
+            book = cm.get_book(utilities.clean_id(book_id))
+            commenting_comments = book.get_comments()
+
+            comments = utilities.extract_items(commenting_comments)
+            return comments
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
+    @utilities.format_response
+    def POST(self, book_id):
+        try:
+            cm = cutils.get_commenting_manager()
+            book = cm.get_book(utilities.clean_id(book_id))
+
+            data = self.data()
+            utilities.verify_keys_present(data, ['referenceId', 'text'])
+
+            form = book.get_comment_form_for_create(utilities.clean_id(data['referenceId']), [])
+            form = utilities.set_form_basics(form, data)
+            form.text = utilities.create_display_text(data['text'])
+
+            column = utilities.convert_dl_object(book.create_comment(form))
+
+            return column
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
 
 app_commenting = web.application(urls, locals())
