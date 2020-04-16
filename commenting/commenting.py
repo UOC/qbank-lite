@@ -2,6 +2,8 @@ import json
 import web
 import utilities
 
+from urllib import quote
+
 import commenting_utilities as cutils
 
 urls = (
@@ -140,7 +142,30 @@ class CommentsList(utilities.BaseClass):
         try:
             cm = cutils.get_commenting_manager()
             book = cm.get_book(utilities.clean_id(book_id))
-            commenting_comments = book.get_comments()
+
+            inputs = self.data()
+
+            if 'genusTypeId' in inputs or 'referenceId' in inputs or 'commentorId' in inputs:
+                querier = book.get_comment_query()
+                if 'genusTypeId' in inputs:
+                    if utilities.unescaped(inputs['genusTypeId']):
+                        querier.match_genus_type(quote(inputs['genusTypeId'], safe='/ '), match=True)
+                    else:
+                        querier.match_genus_type(inputs['genusTypeId'], match=True)
+                if 'referenceId' in inputs:
+                    if utilities.unescaped(inputs['referenceId']):
+                        querier.match_reference_id(quote(inputs['referenceId'], safe='/ '), match=True)
+                    else:
+                        querier.match_reference_id(inputs['referenceId'], match=True)
+                if 'commentorId' in inputs:
+                    if utilities.unescaped(inputs['commentorId']):
+                        querier.match_commentor_id(quote(inputs['commentorId'], safe='/ '), match=True)
+                    else:
+                        querier.match_commentor_id(inputs['commentorId'], match=True)
+
+                commenting_comments = book.get_comments_by_query(querier)
+            else:
+                commenting_comments = book.get_comments()
 
             comments = utilities.extract_items(commenting_comments)
             return comments

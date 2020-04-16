@@ -13,6 +13,7 @@ env:
   - TEST_SUITE=tests/test_repository.py
   - TEST_SUITE=tests/test_restful_items.py
   - TEST_SUITE=tests/test_grading.py
+  - TEST_SUITE=tests/test_commenting.py
   - TEST_SUITE='not tests'
 
 sudo: false

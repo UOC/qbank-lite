@@ -1,6 +1,6 @@
 import json
 
-from dlkit.runtime.primordium import Id
+from dlkit.runtime.primordium import Id, Type
 
 from paste.fixture import AppError
 
@@ -23,6 +23,20 @@ class BaseCommentingTestCase(BaseTestCase):
         form = book.get_comment_form_for_create(reference_id, [])
         form.set_display_name("for testing only")
         form.set_text("text for testing only")
+
+        new_comment = book.create_comment(form)
+
+        return new_comment
+
+    def create_new_comment_with_genus_type(self, book, reference_id, genus_type_id):
+        cm = get_managers()['cm']
+
+        book = cm.get_book(book.ident)
+
+        form = book.get_comment_form_for_create(reference_id, [])
+        form.set_display_name("for testing only")
+        form.set_text("text for testing only")
+        form.set_genus_type(Type(genus_type_id))
 
         new_comment = book.create_comment(form)
 
@@ -307,10 +321,18 @@ class CommentCRUDTests(BaseCommentingTestCase):
     def create_new_comment(self):
         return super(CommentCRUDTests, self).create_new_comment(self.book, self.reference)
 
+    def create_new_comment_for_another_reference(self):
+        return super(CommentCRUDTests, self).create_new_comment(self.book, self.another_reference)
+
+    def create_new_comment_with_genus_type(self, genus_type_id):
+        return super(CommentCRUDTests, self).create_new_comment_with_genus_type(self.book, self.reference, genus_type_id)
+
     def setUp(self):
         super(CommentCRUDTests, self).setUp()
         self.book = create_new_book()
-        self.reference = Id('reference.id%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU')
+        self.reference_id = 'reference.id%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
+        self.reference = Id(self.reference_id)
+        self.another_reference = Id('reference.id%3A55203f0be7dde0815228bb42%40ODL.MIT.EDU')
         self.bad_book_id = 'commenting.Book%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
         self.bad_comment_id = 'commenting.Comment%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
         self.bad_book_url = self.url + '/books/{0}/comments'.format(str(self.bad_book_id))
@@ -329,6 +351,56 @@ class CommentCRUDTests(BaseCommentingTestCase):
         comment = self.create_new_comment()
         self.num_comments(1)
         req = self.app.get(self.url)
+        self.ok(req)
+        comments_list = self.json(req)
+        self.assertEqual(len(comments_list), 1)
+        for attr, val in comment.object_map.iteritems():
+            if attr == 'startDate' or attr == 'endDate':
+                self.assertEqual(
+                    val.isoformat(),
+                    comments_list[0][attr]
+                )
+            else:
+                self.assertEqual(
+                    val,
+                    comments_list[0][attr]
+                )
+
+    def test_can_list_book_comments_by_genus_type(self):
+        req = self.app.get(self.url)
+        self.ok(req)
+        comments_list = self.json(req)
+        self.assertEqual(len(comments_list), 0)
+
+        self.create_new_comment()
+        comment = self.create_new_comment_with_genus_type('comment-genus-type%3Adefault-comment%40ODL.MIT.EDU')
+        self.num_comments(2)
+        req = self.app.get(self.url + '?genusTypeId=comment-genus-type%3Adefault-comment%40ODL.MIT.EDU')
+        self.ok(req)
+        comments_list = self.json(req)
+        self.assertEqual(len(comments_list), 1)
+        for attr, val in comment.object_map.iteritems():
+            if attr == 'startDate' or attr == 'endDate':
+                self.assertEqual(
+                    val.isoformat(),
+                    comments_list[0][attr]
+                )
+            else:
+                self.assertEqual(
+                    val,
+                    comments_list[0][attr]
+                )
+
+    def test_can_list_book_comments_by_reference_id(self):
+        req = self.app.get(self.url)
+        self.ok(req)
+        comments_list = self.json(req)
+        self.assertEqual(len(comments_list), 0)
+
+        self.create_new_comment_for_another_reference()
+        comment = self.create_new_comment()
+        self.num_comments(2)
+        req = self.app.get(self.url + '?referenceId=' + self.reference_id)
         self.ok(req)
         comments_list = self.json(req)
         self.assertEqual(len(comments_list), 1)

@@ -380,6 +380,14 @@ AUTHZ_ADAPTER_1 = {
                 {'value': 'JSON_1', 'priority': 1}
             ]
         },
+        'commentingProviderImpl': {
+            'syntax': 'STRING',
+            'displayName': 'Commenting Provider Implementation',
+            'description': 'Implementation for commenting provider',
+            'values': [
+                {'value': 'JSON_1', 'priority': 1}
+            ]
+        },
     }
 }
 
