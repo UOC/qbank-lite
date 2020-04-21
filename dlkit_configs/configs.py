@@ -296,7 +296,7 @@ JSON_1 = {
             'displayName': 'Use the filesystem instead of MongoDB',
             'description': 'Use the filesystem instead of MongoDB',
             'values': [
-                {'value': False, 'priority': 1}
+                {'value': True, 'priority': 1}
             ]
         },
         'mongoHostURI': {
